@@ -39,14 +39,14 @@ module.exports = {
 
     // 嵌入式消息
     const embed = new EmbedBuilder()
-      .setTitle('入群申请')
-      .setDescription('请点击下方按钮填写申请表单。')
+      .setTitle('准入申请')
+      .setDescription('请点击下方按钮填写申请表单')
       .setColor(0x3498db);
 
     // 申请按钮，携带参数
     const applyBtn = new ButtonBuilder()
       .setCustomId(`openApplyModal:${adminChannelId}:${targetRoleId}`)
-      .setLabel('申请入群')
+      .setLabel('申请准入验证')
       .setStyle(ButtonStyle.Primary);
 
     const row = new ActionRowBuilder().addComponents(applyBtn);
@@ -69,7 +69,7 @@ module.exports = {
     // 弹出模态框，customId 携带参数
     const modal = new ModalBuilder()
       .setCustomId(`applyModal:${adminChannelId}:${targetRoleId}`)
-      .setTitle('入群申请表')
+      .setTitle('申请表')
       .addComponents(
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()

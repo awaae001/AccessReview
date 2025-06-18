@@ -46,9 +46,8 @@ module.exports = async (interaction, client) => {
       // 文件不存在或格式错误，初始化为默认结构
     }
 
-    // 检查是否已拥有或曾经拥有身份组
+    // 检查是否已拥有身份组
     let alreadyHasRole = false;
-    let everApproved = false;
     try {
       // 获取最新 member 信息
       let member = interaction.member;
@@ -60,18 +59,27 @@ module.exports = async (interaction, client) => {
       }
     } catch (e) {
     }
-    // 检查历史申请记录
-    everApproved = fileObj.data.some(
-      d => d.userId === interaction.user.id && d.status === 'approved'
-    );
 
-    if (alreadyHasRole || everApproved) {
-      await interaction.reply({ content: '你已拥有或曾拥有该身份组，无法再次申请。', flags: 64 });
+    if (alreadyHasRole) {
+      await interaction.reply({ content: '你已拥有该身份组，无法再次申请。', flags: 64 });
       return;
     }
 
-    // 追加新记录
+    // 检查是否有未完成的申请
+    const hasPending = fileObj.data.some(
+      d =>
+        d.userId === interaction.user.id &&
+        (!d.status || (d.status !== 'approved' && d.status !== 'rejected'))
+    );
+    if (hasPending) {
+      await interaction.reply({ content: '你有未完成的申请，请等待审核结果。', flags: 64 });
+      return;
+    }
+
+    // 追加新记录，生成唯一操作ID
+    const opId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     fileObj.data.push({
+      id: opId,
       userId: interaction.user.id,
       userTag: interaction.user.tag,
       reason,
@@ -80,43 +88,43 @@ module.exports = async (interaction, client) => {
     });
     // 写回文件
     await fs.writeFile(filePath, JSON.stringify(fileObj, null, 2), 'utf-8');
+
+    // 申请信息嵌入
+    const embed = new EmbedBuilder()
+      .setTitle('新申请')
+      .addFields(
+        { name: '申请人', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: false },
+        { name: '简述理由', value: reason, inline: false },
+        { name: '附加资料', value: extra, inline: false }
+      )
+      .setTimestamp()
+      .setColor(0xf1c40f);
+
+    // 审核按钮
+    const approveBtn = new ButtonBuilder()
+      .setCustomId(`approve:${opId}:${targetRoleId}`)
+      .setLabel('通过')
+      .setStyle(ButtonStyle.Success);
+
+    const rejectBtn = new ButtonBuilder()
+      .setCustomId(`reject:${opId}:${targetRoleId}`)
+      .setLabel('拒绝')
+      .setStyle(ButtonStyle.Danger);
+
+    const row = new ActionRowBuilder().addComponents(approveBtn, rejectBtn);
+
+    // 推送到管理员频道
+    const adminChannel = await client.channels.fetch(adminChannelId);
+    if (adminChannel && adminChannel.isTextBased()) {
+      await adminChannel.send({
+        embeds: [embed],
+        components: [row]
+      });
+    }
+
+    await interaction.reply({ content: '申请已提交，等待管理员审核。', flags: 64 });
   } catch (err) {
     // 持久化失败不影响主流程，仅记录日志
     console.error('保存申请信息失败:', err);
   }
-
-  // 申请信息嵌入
-  const embed = new EmbedBuilder()
-    .setTitle('新入群申请')
-    .addFields(
-      { name: '申请人', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: false },
-      { name: '简述理由', value: reason, inline: false },
-      { name: '附加资料', value: extra, inline: false }
-    )
-    .setTimestamp()
-    .setColor(0xf1c40f);
-
-  // 审核按钮，customId 携带 targetRoleId
-  const approveBtn = new ButtonBuilder()
-    .setCustomId(`approve:${interaction.user.id}:${targetRoleId}`)
-    .setLabel('通过')
-    .setStyle(ButtonStyle.Success);
-
-  const rejectBtn = new ButtonBuilder()
-    .setCustomId(`reject:${interaction.user.id}:${targetRoleId}`)
-    .setLabel('拒绝')
-    .setStyle(ButtonStyle.Danger);
-
-  const row = new ActionRowBuilder().addComponents(approveBtn, rejectBtn);
-
-  // 推送到管理员频道
-  const adminChannel = await client.channels.fetch(adminChannelId);
-  if (adminChannel && adminChannel.isTextBased()) {
-    await adminChannel.send({
-      embeds: [embed],
-      components: [row]
-    });
-  }
-
-  await interaction.reply({ content: '申请已提交，等待管理员审核。', flags: 64 });
 };
