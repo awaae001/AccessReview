@@ -52,8 +52,9 @@ module.exports = {
         await interaction.channel.send({
           embeds: [{
             title: '申请已通过',
-            description: `用户 <@${userId}> 的申请已通过，已分配身份组。`,
-            color: 0x57F287 
+            description: `用户 <@${userId}> 的申请已通过，已分配身份组`,
+            color: 0x57F287,
+            footer: { text: `由 ${interaction.user.username} 操作 · AccessReview ` }
           }]
         });
         // 删除原来的 ED 消息
@@ -84,8 +85,9 @@ module.exports = {
         await interaction.channel.send({
           embeds: [{
             title: '申请已拒绝',
-            description: `用户 <@${userId}> 的申请已被拒绝。`,
-            color: 0xED4245 // 红色
+            description: `用户 <@${userId}> 的申请已被拒绝`,
+            color: 0xED4245, // 红色
+            footer: { text: `由 ${interaction.user.username} 操作 · AccessReview ` }
           }]
         });
         // 删除原来的 ED 消息
@@ -110,7 +112,14 @@ module.exports = {
       }
     } catch (err) {
       console.error(`[roleManager] 操作失败: ${err}`);
-      await interaction.reply({ content: '操作失败，请检查机器人权限。', flags: 64 });
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '操作失败，请检查机器人权限。', flags: 64 });
+        } else {
+          await interaction.followUp({ content: '操作失败，请检查机器人权限。', flags: 64 });
+        }
+      } catch (e) {
+      }
     }
   }
 };
