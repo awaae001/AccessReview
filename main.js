@@ -1,6 +1,6 @@
 // 主入口，注册事件与命令
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, Collection, Events, REST, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, InteractionType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, Events, InteractionType } = require('discord.js');
 const config = require('./src/config');
 const { scanTask } = require('./src/tasks/scanner');
 
