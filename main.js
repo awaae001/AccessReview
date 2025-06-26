@@ -27,9 +27,6 @@ client.commands.set('apply', require('./src/commands/apply'));
 client.once(Events.ClientReady, async () => {
   console.log(`Bot 已上线: ${client.user.tag}`);
 
-  // 执行扫描任务
-  await scanTask();
-
   // 自动全局注册 Slash 命令
   try {
     const { REST, Routes } = require('discord.js');
@@ -56,6 +53,9 @@ client.once(Events.ClientReady, async () => {
   } catch (err) {
     console.error('全局命令注册失败:', err);
   }
+
+  // 执行扫描任务
+  scanTask();
 });
 
 // 监听交互

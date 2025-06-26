@@ -3,12 +3,13 @@ const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const fs = require('fs').promises;
 const path = require('path');
+const { log } = require('console');
 
 const configPath = path.join(__dirname, '..', '..', 'data', 'task', 'task_config.json');
-const dbPath = path.join(__dirname, '..', '..', 'data', 'task', 'stats.db');
 
 // 初始化数据库
-async function initializeDatabase() {
+async function initializeDatabase(channel_id) {
+    const dbPath = path.join(__dirname, '..', '..', 'data', 'task', `data_${channel_id}.db`);
     const db = await open({
         filename: dbPath,
         driver: sqlite3.Database
@@ -19,7 +20,8 @@ async function initializeDatabase() {
             user_id TEXT PRIMARY KEY,
             username TEXT NOT NULL,
             message_count INTEGER DEFAULT 0,
-            mention_count INTEGER DEFAULT 0
+            mention_count INTEGER DEFAULT 0,
+            last_message_timestamp INTEGER DEFAULT 0
         );
     `);
 
@@ -31,6 +33,7 @@ async function initializeDatabase() {
 async function loadConfig() {
     try {
         const data = await fs.readFile(configPath, 'utf8');
+        console.log('配置文件加载成功:', data);
         return JSON.parse(data);
     } catch (error) {
         console.error('读取配置文件失败:', error);
@@ -38,142 +41,147 @@ async function loadConfig() {
     }
 }
 
-// 扫描任务
+// 更新配置文件
+async function updateConfig(taskId, newFristMessageId) {
+    try {
+        const data = await fs.readFile(configPath, 'utf8');
+        const config = JSON.parse(data);
+        if (config[taskId]) {
+            config[taskId].data.frist_message_id = newFristMessageId;
+            await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
+            console.log(`任务 ${taskId} 的 frist_message_id 已更新为: ${newFristMessageId}`);
+        }
+    } catch (error) {
+        console.error(`更新任务 ${taskId} 的配置文件失败:`, error);
+    }
+}
+
+// 单个频道扫描逻辑
+async function scanChannel(taskId, task) {
+    const { guilds_id, channel_id, frist_message_id } = task.data;
+    console.log(`正在扫描服务器: ${guilds_id}, 频道: ${channel_id}`);
+
+    const db = await initializeDatabase(channel_id);
+
+    try {
+        // 使用全局共享的 Discord 客户端实例
+        if (!global.client || !global.client.isReady()) {
+            console.error('Discord 客户端未初始化或尚未准备好');
+            return;
+        }
+        const client = global.client;
+
+        // 获取频道
+        const guild = await client.guilds.fetch(String(guilds_id));
+        const channel = await guild.channels.fetch(String(channel_id));
+        if (!channel) {
+            console.error(`未找到频道: ${channel_id}`);
+            return;
+        }
+
+        console.log(`成功获取频道: ${channel.name}`);
+
+        // 获取消息（从指定的第一条消息开始）
+        let lastMessageId = String(frist_message_id);
+        let hasMoreMessages = true;
+        let cumulativeStats = {};
+        let messagesSinceLastWrite = 0;
+
+        while (hasMoreMessages) {
+            const options = { limit: 100 };
+            if (lastMessageId) {
+                options.after = lastMessageId;
+            }
+
+            const messages = await channel.messages.fetch(options);
+            console.log(`在频道 ${channel_id} 获取了 ${messages.size} 条消息`);
+
+            if (messages.size > 0) {
+                lastMessageId = messages.first().id;
+                messagesSinceLastWrite += messages.size;
+            } else {
+                hasMoreMessages = false;
+            }
+
+            // 处理消息
+            for (const [, message] of messages) {
+                if (message.author.bot) continue;
+
+                const userId = message.author.id;
+                const username = message.author.username;
+                const messageTimestamp = message.createdTimestamp;
+
+                if (!cumulativeStats[userId]) {
+                    cumulativeStats[userId] = { username, message_count: 0, mention_count: 0, last_message_timestamp: 0 };
+                }
+                cumulativeStats[userId].message_count++;
+                if (messageTimestamp > cumulativeStats[userId].last_message_timestamp) {
+                    cumulativeStats[userId].last_message_timestamp = messageTimestamp;
+                }
+
+                const mentionedUsers = message.mentions.users;
+                for (const [mentionedId, mentionedUser] of mentionedUsers) {
+                    if (mentionedUser.bot) continue;
+
+                    if (!cumulativeStats[mentionedId]) {
+                        cumulativeStats[mentionedId] = { username: mentionedUser.username, message_count: 0, mention_count: 0, last_message_timestamp: 0 };
+                    }
+                    cumulativeStats[mentionedId].mention_count++;
+                }
+            }
+
+            // 每 X 条消息写一次库, 或者在没有更多消息时写入剩余的统计数据
+            if (messagesSinceLastWrite >= 1000 || (!hasMoreMessages && Object.keys(cumulativeStats).length > 0)) {
+                // 将当前批次结果存入数据库
+                if (Object.keys(cumulativeStats).length > 0) {
+                    for (const userId in cumulativeStats) {
+                        const { username, message_count, mention_count, last_message_timestamp } = cumulativeStats[userId];
+                        await db.run(`
+                            INSERT INTO user_stats (user_id, username, message_count, mention_count, last_message_timestamp)
+                            VALUES (?, ?, ?, ?, ?)
+                            ON CONFLICT(user_id) 
+                            DO UPDATE SET 
+                                username = excluded.username,
+                                message_count = message_count + excluded.message_count,
+                                mention_count = mention_count + excluded.mention_count,
+                                last_message_timestamp = IIF(excluded.last_message_timestamp > last_message_timestamp, excluded.last_message_timestamp, last_message_timestamp)
+                        `, [userId, username, message_count, mention_count, last_message_timestamp]);
+                    }
+                    console.log(`在频道 ${channel_id} 成功更新了 ${Object.keys(cumulativeStats).length} 名用户的统计数据`);
+
+                    await updateConfig(taskId, lastMessageId);
+                }
+                
+                // 重置计数器和累积器
+                cumulativeStats = {};
+                messagesSinceLastWrite = 0;
+            }
+        }
+    } catch (error) {
+        console.error(`扫描频道 ${channel_id} 过程中出错:`, error);
+    } finally {
+        await db.close();
+        console.log(`频道 ${channel_id} 的数据库连接已关闭`);
+    }
+}
+
+// 并行扫描任务
 async function scanTask() {
-    console.log('开始执行扫描任务...');
+    console.log('开始执行并行扫描任务...');
     const config = await loadConfig();
     if (!config) {
         console.log('无法加载配置，任务终止');
         return;
     }
 
-    const db = await initializeDatabase();
+    const scanPromises = Object.entries(config).map(([taskId, task]) => scanChannel(taskId, task));
 
-    // 清空统计数据（可选，取决于是否需要重新统计）
-    // await db.run('DELETE FROM user_stats');
-
-    // 遍历所有配置的服务器和频道
-    for (const key in config) {
-        const task = config[key];
-        const { guilds_id, channel_id, frist_message_id } = task.data;
-        console.log(`正在扫描服务器: ${guilds_id}, 频道: ${channel_id}`);
-
-        // 使用全局共享的 Discord 客户端实例
-        if (!global.client) {
-            console.error('Discord 客户端未初始化');
-            continue;
-        }
-        const client = global.client;
-        console.log('客户端guilds属性:', client.guilds);
-
-        // 确保客户端已准备好
-        if (!client.isReady()) {
-            console.error('Discord 客户端尚未准备好');
-            continue;
-        }
-
-        try {
-            // 获取频道
-            const guild = await client.guilds.fetch(String(guilds_id));
-            const channel = await guild.channels.fetch(String(channel_id));
-            if (!channel) {
-                console.error(`未找到频道: ${channel_id}`);
-                continue;
-            }
-
-            console.log(`成功获取频道: ${channel.name}`);
-
-            // 用于存储用户统计数据的对象
-            const userStats = {};
-
-            // 获取消息（从指定的第一条消息开始）
-            let lastMessageId = String(frist_message_id);
-            let hasMoreMessages = true;
-
-            // 分批获取消息
-            while (hasMoreMessages) {
-                const options = { limit: 100 }; // Discord API 一次最多返回 100 条消息
-
-                if (lastMessageId) {
-                    options.after = lastMessageId; // 获取指定消息之后的消息
-                }
-
-                const messages = await channel.messages.fetch(options);
-                console.log(`获取了 ${messages.size} 条消息`);
-
-                if (messages.size === 0) {
-                    hasMoreMessages = false;
-                    continue;
-                }
-
-                // 更新最后一条消息的 ID，用于下一次获取
-                lastMessageId = messages.last().id;
-
-                // 处理消息
-                for (const [messageId, message] of messages) {
-                    // 忽略机器人消息
-                    if (message.author.bot) continue;
-
-                    // 统计发言次数
-                    const userId = message.author.id;
-                    const username = message.author.username;
-
-                    if (!userStats[userId]) {
-                        userStats[userId] = {
-                            username,
-                            message_count: 0,
-                            mention_count: 0
-                        };
-                    }
-
-                    userStats[userId].message_count++;
-
-                    // 统计被提及次数（包含@提及和回复提及）
-                    // message.mentions.users 会自动包含：
-                    // 1. 直接@提及的用户
-                    // 2. 回复消息时自动提及的用户
-                    const mentionedUsers = message.mentions.users;
-                    for (const [mentionedId, mentionedUser] of mentionedUsers) {
-                        if (mentionedUser.bot) continue;
-
-                        if (!userStats[mentionedId]) {
-                            userStats[mentionedId] = {
-                                username: mentionedUser.username,
-                                message_count: 0,
-                                mention_count: 0
-                            };
-                        }
-
-                        userStats[mentionedId].mention_count++;
-                    }
-                }
-            }
-
-            // 将结果存入数据库
-            for (const userId in userStats) {
-                const { username, message_count, mention_count } = userStats[userId];
-                
-                // 使用 UPSERT 语法，如果用户已存在则更新，不存在则插入
-                await db.run(`
-                    INSERT INTO user_stats (user_id, username, message_count, mention_count)
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(user_id) 
-                    DO UPDATE SET 
-                        username = ?,
-                        message_count = message_count + ?,
-                        mention_count = mention_count + ?
-                `, [userId, username, message_count, mention_count, username, message_count, mention_count]);
-            }
-
-            console.log(`成功更新了 ${Object.keys(userStats).length} 名用户的统计数据`);
-
-        } catch (error) {
-            console.error(`扫描过程中出错:`, error);
-        }
+    try {
+        await Promise.all(scanPromises);
+        console.log('所有扫描任务均已完成。');
+    } catch (error) {
+        console.error('并行扫描过程中发生错误:', error);
     }
-
-    await db.close();
-    console.log('扫描任务执行完毕。');
 }
 
 // 设置定时任务，每天凌晨3点执行一次（服务器负载较低的时间）
