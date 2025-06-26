@@ -2,16 +2,22 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, Collection, Events, REST, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, InteractionType } = require('discord.js');
 const config = require('./src/config');
+const { scanTask } = require('./src/tasks/scanner');
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMessageTyping
   ],
   partials: [Partials.Channel]
 });
+
+// 设置全局客户端实例，以便其他模块访问
+global.client = client;
 
 // 命令集合
 client.commands = new Collection();
@@ -20,6 +26,9 @@ client.commands.set('apply', require('./src/commands/apply'));
 // 监听 ready
 client.once(Events.ClientReady, async () => {
   console.log(`Bot 已上线: ${client.user.tag}`);
+
+  // 执行扫描任务
+  await scanTask();
 
   // 自动全局注册 Slash 命令
   try {
