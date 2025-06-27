@@ -22,6 +22,7 @@ global.client = client;
 // 命令集合
 client.commands = new Collection();
 client.commands.set('apply', require('./src/commands/apply'));
+client.commands.set('creat_apply_ed', require('./src/commands/create_apply_embed'));
 
 // 监听 ready
 client.once(Events.ClientReady, async () => {
@@ -64,7 +65,7 @@ client.on(Events.InteractionCreate, async interaction => {
     const command = client.commands.get(interaction.commandName);
     if (command) await command.execute(interaction, client);
   } else if (interaction.type === InteractionType.ModalSubmit) {
-    require('./src/modals/applyModal')(interaction, client);
+    require('./src/interactions/applyModal')(interaction, client);
   } else if (interaction.isButton()) {
     // 入群申请按钮处理
     if (interaction.customId.startsWith('openApplyModal')) {
@@ -73,10 +74,19 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
     // 审核按钮处理
-    const [action, userId, targetRoleId] = interaction.customId.split(':');
-    if ((action === 'approve' || action === 'reject') && userId && targetRoleId) {
-      const roleManager = require('./src/utils/roleManager');
-      await roleManager.handleReview(interaction, action, userId, targetRoleId, client);
+    if (interaction.customId.startsWith('approve') || interaction.customId.startsWith('reject')) {
+      const [action, userId, targetRoleId] = interaction.customId.split(':');
+      if (userId && targetRoleId) {
+        const roleManager = require('./src/utils/roleManager');
+        await roleManager.handleReview(interaction, action, userId, targetRoleId, client);
+      }
+      return;
+    }
+    // 自动审核按钮处理
+    if (interaction.customId.startsWith('autoApply')) {
+      const { handleAutoApply } = require('./src/interactions/autoApply');
+      await handleAutoApply(interaction);
+      return;
     }
   }
 });
