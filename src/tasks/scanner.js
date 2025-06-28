@@ -3,7 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const fs = require('fs').promises;
 const path = require('path');
-const { log } = require('console');
+const { sendLog } = require('../utils/logger');
 
 const configPath = path.join(__dirname, '..', '..', 'data', 'task', 'task_config.json');
 
@@ -21,6 +21,7 @@ async function initializeDatabase(channel_id) {
             username TEXT NOT NULL,
             message_count INTEGER DEFAULT 0,
             mention_count INTEGER DEFAULT 0,
+            mentions_made_count INTEGER DEFAULT 0,
             last_message_timestamp INTEGER DEFAULT 0
         );
     `);
@@ -49,7 +50,7 @@ async function updateConfig(taskId, newFristMessageId) {
         if (config[taskId]) {
             config[taskId].data.frist_message_id = newFristMessageId;
             await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
-            console.log(`任务 ${taskId} 的 frist_message_id 已更新为: ${newFristMessageId}`);
+            console.log( `任务 ${taskId} 的 frist_message_id 已更新为: ${newFristMessageId}` )
         }
     } catch (error) {
         console.error(`更新任务 ${taskId} 的配置文件失败:`, error);
@@ -59,14 +60,15 @@ async function updateConfig(taskId, newFristMessageId) {
 // 单个频道扫描逻辑
 async function scanChannel(taskId, task) {
     const { guilds_id, channel_id, frist_message_id } = task.data;
-    console.log(`正在扫描服务器: ${guilds_id}, 频道: ${channel_id}`);
+    console.log(`正在扫描服务器: ${guilds_id}, 频道: ${channel_id}`)
 
     const db = await initializeDatabase(channel_id);
+    let totalMessagesScanned = 0;
+    let totalMembersAffected = 0;
 
     try {
         // 使用全局共享的 Discord 客户端实例
         if (!global.client || !global.client.isReady()) {
-            console.error('Discord 客户端未初始化或尚未准备好');
             return;
         }
         const client = global.client;
@@ -75,11 +77,11 @@ async function scanChannel(taskId, task) {
         const guild = await client.guilds.fetch(String(guilds_id));
         const channel = await guild.channels.fetch(String(channel_id));
         if (!channel) {
-            console.error(`未找到频道: ${channel_id}`);
+            console.error(`未找到频道: ${channel_id}`)
             return;
         }
 
-        console.log(`成功获取频道: ${channel.name}`);
+        console.log(`开始扫描频道: ${channel.name} (${channel_id})`);
 
         // 获取消息（从指定的第一条消息开始）
         let lastMessageId = String(frist_message_id);
@@ -94,7 +96,8 @@ async function scanChannel(taskId, task) {
             }
 
             const messages = await channel.messages.fetch(options);
-            console.log(`在频道 ${channel_id} 获取了 ${messages.size} 条消息`);
+            totalMessagesScanned += messages.size;
+            console.log(`在频道 ${channel_id} 获取了 ${messages.size} 条消息`)
 
             if (messages.size > 0) {
                 lastMessageId = messages.first().id;
@@ -112,7 +115,7 @@ async function scanChannel(taskId, task) {
                 const messageTimestamp = message.createdTimestamp;
 
                 if (!cumulativeStats[userId]) {
-                    cumulativeStats[userId] = { username, message_count: 0, mention_count: 0, last_message_timestamp: 0 };
+                    cumulativeStats[userId] = { username, message_count: 0, mention_count: 0, mentions_made_count: 0, last_message_timestamp: 0 };
                 }
                 cumulativeStats[userId].message_count++;
                 if (messageTimestamp > cumulativeStats[userId].last_message_timestamp) {
@@ -120,11 +123,16 @@ async function scanChannel(taskId, task) {
                 }
 
                 const mentionedUsers = message.mentions.users;
+                const nonBotMentionsCount = mentionedUsers.filter(u => !u.bot).size;
+                if (nonBotMentionsCount > 0) {
+                    cumulativeStats[userId].mentions_made_count += nonBotMentionsCount;
+                }
+
                 for (const [mentionedId, mentionedUser] of mentionedUsers) {
                     if (mentionedUser.bot) continue;
 
                     if (!cumulativeStats[mentionedId]) {
-                        cumulativeStats[mentionedId] = { username: mentionedUser.username, message_count: 0, mention_count: 0, last_message_timestamp: 0 };
+                        cumulativeStats[mentionedId] = { username: mentionedUser.username, message_count: 0, mention_count: 0, mentions_made_count: 0, last_message_timestamp: 0 };
                     }
                     cumulativeStats[mentionedId].mention_count++;
                 }
@@ -134,21 +142,22 @@ async function scanChannel(taskId, task) {
             if (messagesSinceLastWrite >= 1000 || (!hasMoreMessages && Object.keys(cumulativeStats).length > 0)) {
                 // 将当前批次结果存入数据库
                 if (Object.keys(cumulativeStats).length > 0) {
+                    const membersAffectedInBatch = Object.keys(cumulativeStats).length;
+                    totalMembersAffected += membersAffectedInBatch;
                     for (const userId in cumulativeStats) {
-                        const { username, message_count, mention_count, last_message_timestamp } = cumulativeStats[userId];
+                        const { username, message_count, mention_count, mentions_made_count, last_message_timestamp } = cumulativeStats[userId];
                         await db.run(`
-                            INSERT INTO user_stats (user_id, username, message_count, mention_count, last_message_timestamp)
-                            VALUES (?, ?, ?, ?, ?)
+                            INSERT INTO user_stats (user_id, username, message_count, mention_count, mentions_made_count, last_message_timestamp)
+                            VALUES (?, ?, ?, ?, ?, ?)
                             ON CONFLICT(user_id) 
                             DO UPDATE SET 
                                 username = excluded.username,
                                 message_count = message_count + excluded.message_count,
                                 mention_count = mention_count + excluded.mention_count,
+                                mentions_made_count = mentions_made_count + excluded.mentions_made_count,
                                 last_message_timestamp = IIF(excluded.last_message_timestamp > last_message_timestamp, excluded.last_message_timestamp, last_message_timestamp)
-                        `, [userId, username, message_count, mention_count, last_message_timestamp]);
+                        `, [userId, username, message_count, mention_count, mentions_made_count, last_message_timestamp]);
                     }
-                    console.log(`在频道 ${channel_id} 成功更新了 ${Object.keys(cumulativeStats).length} 名用户的统计数据`);
-
                     await updateConfig(taskId, lastMessageId);
                 }
                 
@@ -157,42 +166,29 @@ async function scanChannel(taskId, task) {
                 messagesSinceLastWrite = 0;
             }
         }
+        await sendLog({ module: 'Scanner', action: 'Scan Complete', info: `频道 ${channel_id} 扫描完成 \n 共扫描 ${totalMessagesScanned} 条消息 \n 操作了 ${totalMembersAffected} 名成员。` });
     } catch (error) {
-        console.error(`扫描频道 ${channel_id} 过程中出错:`, error);
     } finally {
         await db.close();
-        console.log(`频道 ${channel_id} 的数据库连接已关闭`);
+        await sendLog({ module: 'Scanner', action: 'Database Closed', info: `频道 ${channel_id} 的数据库连接已关闭` });
     }
 }
 
 // 并行扫描任务
 async function scanTask() {
-    console.log('开始执行并行扫描任务...');
     const config = await loadConfig();
     if (!config) {
-        console.log('无法加载配置，任务终止');
         return;
     }
-
     const scanPromises = Object.entries(config).map(([taskId, task]) => scanChannel(taskId, task));
 
-    try {
-        await Promise.all(scanPromises);
-        console.log('所有扫描任务均已完成。');
-    } catch (error) {
-        console.error('并行扫描过程中发生错误:', error);
-    }
+    await Promise.all(scanPromises);
 }
 
 // 设置定时任务，每天凌晨3点执行一次（服务器负载较低的时间）
 cron.schedule('0 3 * * *', async () => {
-    console.log('开始执行定时扫描任务...');
-    try {
-        await scanTask();
-        console.log('定时扫描任务执行完毕');
-    } catch (error) {
-        console.error('定时扫描任务执行失败:', error);
-    }
+    await sendLog({ module: 'Scanner', action: 'Start Cron Job', info: '开始执行定时扫描任务...' }, 'warn');
+    await scanTask();
 });
 
 // 导出函数，以便在其他地方调用

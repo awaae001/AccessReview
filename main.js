@@ -1,8 +1,8 @@
 // 主入口，注册事件与命令
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, Collection, Events, InteractionType } = require('discord.js');
-const config = require('./src/config');
 const { scanTask } = require('./src/tasks/scanner');
+const { sendLog } = require('./src/utils/logger');
 
 const client = new Client({
   intents: [
@@ -23,10 +23,16 @@ global.client = client;
 client.commands = new Collection();
 client.commands.set('apply', require('./src/commands/apply'));
 client.commands.set('creat_apply_ed', require('./src/commands/create_apply_embed'));
+client.commands.set('refresh_db', require('./src/commands/refresh_db'));
 
 // 监听 ready
 client.once(Events.ClientReady, async () => {
   console.log(`Bot 已上线: ${client.user.tag}`);
+  await sendLog({
+    module: 'Main',
+    action: 'Bot Startup',
+    info: `Bot 已上线: ${client.user.tag}`
+  });
 
   // 自动全局注册 Slash 命令
   try {

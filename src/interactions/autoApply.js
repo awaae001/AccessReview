@@ -51,6 +51,7 @@ async function setCooldown(userId) {
 async function handleAutoApply(interaction) {
   const [_, targetRoleId, dbName, dbKv, adminChannelId] = interaction.customId.split(':');
   const userId = interaction.user.id;
+  const guild = interaction.guild;
 
   // 检查用户是否已持有该身份组
   if (interaction.member.roles.cache.has(targetRoleId)) {
@@ -78,6 +79,9 @@ async function handleAutoApply(interaction) {
     }
   }
 
+  // 无论成功与否，先设置冷却
+  await setCooldown(userId);
+
   // Find the config entry for the target role and get the threshold
   const configKey = Object.keys(roleConfig).find(key => roleConfig[key].data.role_id === targetRoleId);
   if (!configKey) {
@@ -90,7 +94,7 @@ async function handleAutoApply(interaction) {
   const member = interaction.member;
   const client = interaction.client;
 
-  console.log(`[autoApply/handleAutoApply] 用户 ${interaction.user.tag}(${userId}) 开始自动审核流程`);
+  console.log(`[autoApply/handleAutoApply] 用户 ${interaction.user.tag}(${userId}) 在服务器 ${guild.name}(${guild.id}) 开始自动审核流程`);
   console.log(`[autoApply/handleAutoApply] 参数: targetRoleId=${targetRoleId}, dbName=${dbName}, dbKv=${dbKv}, adminChannelId=${adminChannelId}`);
 
   const dbPath = path.join(__dirname, '..', '..', 'data', 'task', dbName);
@@ -123,9 +127,6 @@ async function handleAutoApply(interaction) {
           .setTimestamp();
         interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
-        // 设置冷却时间
-        await setCooldown(userId);
-
         if (adminChannel) {
           const adminEmbed = new EmbedBuilder()
             .setTitle('自动审核日志')
@@ -133,7 +134,8 @@ async function handleAutoApply(interaction) {
             .setColor(0x2ecc71)
             .addFields(
               { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },
-              { name: '审核状态', value: '通过', inline: true }
+              { name: '审核状态', value: '通过', inline: true },
+              { name: '服务器', value: `${guild.name}`, inline: false }
             )
             .setTimestamp();
           adminChannel.send({ embeds: [adminEmbed] });
@@ -153,16 +155,17 @@ async function handleAutoApply(interaction) {
       interaction.reply({ embeds: [failureEmbed], ephemeral: true });
 
       if (adminChannel) {
-        const adminEmbed = new EmbedBuilder()
-          .setTitle('自动审核日志')
-          .setDescription(`用户 ${member} (${userId}) 的申请已自动拒绝。`)
-          .setColor(0xe74c3c)
-          .addFields(
-            { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },
-            { name: '审核状态', value: '未通过', inline: true },
-            { name: '原因', value: `当前值 ${currentValue} 未达到阈值 ${threshold}`, inline: false }
-          )
-          .setTimestamp();
+          const adminEmbed = new EmbedBuilder()
+            .setTitle('自动审核日志')
+            .setDescription(`用户 ${member} (${userId}) 的申请已自动拒绝。`)
+            .setColor(0xe74c3c)
+            .addFields(
+              { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },
+              { name: '审核状态', value: '未通过', inline: true },
+              { name: '服务器', value: `${guild.name}`, inline: false },
+              { name: '原因', value: `当前值 ${currentValue} 未达到阈值 ${threshold}`, inline: false }
+            )
+            .setTimestamp();
         adminChannel.send({ embeds: [adminEmbed] });
       }
     }
