@@ -71,7 +71,11 @@ client.on(Events.InteractionCreate, async interaction => {
     const command = client.commands.get(interaction.commandName);
     if (command) await command.execute(interaction, client);
   } else if (interaction.type === InteractionType.ModalSubmit) {
-    require('./src/interactions/applyModal')(interaction, client);
+    if (interaction.customId.startsWith('rejectModal:')) {
+      require('./src/interactions/rejectModal')(interaction, client);
+    } else {
+      require('./src/interactions/applyModal')(interaction, client);
+    }
   } else if (interaction.isButton()) {
     // 入群申请按钮处理
     if (interaction.customId.startsWith('openApplyModal')) {

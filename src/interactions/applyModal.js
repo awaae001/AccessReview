@@ -76,6 +76,24 @@ module.exports = async (interaction, client) => {
       return;
     }
 
+    // 检查是否有过被拒绝记录
+    const hasRejected = fileObj.data.some(
+      d => d.userId === interaction.user.id && d.status === 'rejected'
+    ); // 添加限制，24 小时后可以再次申请
+    if (hasRejected) {
+      const lastRejected = fileObj.data
+        .filter(d => d.userId === interaction.user.id && d.status === 'rejected')
+        .sort((a, b) => b.timestamp - a.timestamp)[0];
+      const timeSinceLastReject = Date.now() - lastRejected.timestamp;
+      if (timeSinceLastReject < 24 * 60 * 60 * 1000) { // 24 小时
+        await interaction.reply({
+          content: `你在 ${new Date(lastRejected.timestamp).toLocaleString()} 被拒绝过申请，请等待 24 小时后再试。`,
+          flags: 64
+        });
+        return;
+      }
+    }
+
     // 追加新记录，生成唯一操作ID
     const opId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     fileObj.data.push({

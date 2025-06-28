@@ -79,36 +79,24 @@ module.exports = {
           // 忽略json写入异常
         }
       } else if (action === 'reject') {
-        console.log(`[roleManager] 操作ID ${opId} 的申请被拒绝`);
-        await interaction.reply({ content: `已拒绝 <@${userId}> 的申请。`, flags: 64 });
-        // 发送新的 Embed 消息作为ED消息
-        await interaction.channel.send({
-          embeds: [{
-            title: '申请已拒绝',
-            description: `用户 <@${userId}> 的申请已被拒绝`,
-            color: 0xED4245, // 红色
-            footer: { text: `由 ${interaction.user.username} 操作 · AccessReview ` }
-          }]
-        });
-        // 删除原来的 ED 消息
-        if (interaction.message && typeof interaction.message.delete === 'function') {
-          await interaction.message.delete();
-        }
-        // 标记json为已完成
-        try {
-          const file = await fs.readFile(filePath, 'utf-8');
-          const fileObj = JSON.parse(file);
-          if (fileObj && Array.isArray(fileObj.data)) {
-            const rec2 = fileObj.data.find(d => d.id === opId);
-            if (rec2) rec2.status = 'rejected';
-            delete rec2.userTag;
-            delete rec2.reason;
-            delete rec2.extra;
-            await fs.writeFile(filePath, JSON.stringify(fileObj, null, 2), 'utf-8');
-          }
-        } catch (e) {
-          // 忽略json写入异常
-        }
+        const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+        // 创建一个模态框
+        const modal = new ModalBuilder()
+          .setCustomId(`rejectModal:${opId}:${targetRoleId}`)
+          .setTitle('拒绝申请');
+
+        const reasonInput = new TextInputBuilder()
+          .setCustomId('rejectReason')
+          .setLabel("拒绝理由(可选，将私信给用户)")
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('如果留空，将不会发送私信。')
+          .setRequired(false);
+
+        const firstActionRow = new ActionRowBuilder().addComponents(reasonInput);
+        modal.addComponents(firstActionRow);
+
+        // 显示模态框
+        await interaction.showModal(modal);
       }
     } catch (err) {
       console.error(`[roleManager] 操作失败: ${err}`);
