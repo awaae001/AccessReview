@@ -2,6 +2,7 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, Collection, Events, InteractionType } = require('discord.js');
 const { scanTask } = require('./src/tasks/scanner');
+const kickManager = require('./src/tasks/kickManager');
 const { sendLog } = require('./src/utils/logger');
 
 const client = new Client({
@@ -63,6 +64,8 @@ client.once(Events.ClientReady, async () => {
 
   // 执行扫描任务
   scanTask();
+  // 初始化身份组管理任务
+  kickManager.initialize();
 });
 
 // 监听交互
