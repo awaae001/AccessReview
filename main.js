@@ -25,6 +25,7 @@ client.commands = new Collection();
 client.commands.set('apply', require('./src/commands/apply'));
 client.commands.set('creat_apply_ed', require('./src/commands/create_apply_embed'));
 client.commands.set('refresh_db', require('./src/commands/refresh_db'));
+client.commands.set('query', require('./src/commands/query'));
 
 // 监听 ready
 client.once(Events.ClientReady, async () => {
@@ -63,9 +64,9 @@ client.once(Events.ClientReady, async () => {
   }
 
   // 执行扫描任务
-  scanTask();
+  // scanTask();
   // 初始化身份组管理任务
-  kickManager.initialize();
+  // kickManager.initialize();
 });
 
 // 监听交互

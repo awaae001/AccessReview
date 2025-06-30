@@ -91,6 +91,15 @@ async function handleAutoApply(interaction) {
   const configData = roleConfig[configKey].data;
   const threshold = configData.threshold;
 
+  if (configData.musthold_role_id && configData.musthold_role_id !== "0") {
+    if (!interaction.member.roles.cache.has(configData.musthold_role_id)) {
+      return interaction.reply({
+        content: `您需要持有 <@&${configData.musthold_role_id}> 身份组才能申请此身份组。`,
+        ephemeral: true,
+      });
+    }
+  }
+
   const member = interaction.member;
   const client = interaction.client;
 
