@@ -36,9 +36,8 @@ async function logAtRiskMembers(client, config) {
                 console.warn(`[KickManager] 在服务器 ${guildId} 未找到身份组 ${roleId}，跳过危险用户扫描。`);
                 continue;
             }
-            // 兼容旧版 discord.js，先获取服务器所有成员再根据身份组过滤
-            const members = await guild.members.fetch();
-            const roleMembers = members.filter(member => member.roles.cache.has(roleId));
+            // 直接获取拥有该身份组的成员
+            const roleMembers = role.members;
             roleMembers.forEach(m => allMemberIds.add(m.id));
         } catch (guildError) {
             console.error(`[KickManager] 预测危险用户时处理服务器 ${guildId} 失败: ${guildError.message}`);
@@ -131,9 +130,8 @@ async function scanAndKick() {
                     console.warn(`[KickManager] 在服务器 ${guildId} 未找到身份组 ${roleId}，跳过。`);
                     continue;
                 }
-                // 兼容旧版 discord.js，先获取服务器所有成员再根据身份组过滤
-                const members = await guild.members.fetch();
-                const roleMembers = members.filter(member => member.roles.cache.has(roleId));
+                // 直接获取拥有该身份组的成员
+                const roleMembers = role.members;
                 // 将每个拥有该身份组的成员添加到待处理列表
                 for (const [memberId] of roleMembers) {
                     if (!membersToProcess.has(memberId)) {

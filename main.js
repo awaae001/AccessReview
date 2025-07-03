@@ -64,43 +64,54 @@ client.once(Events.ClientReady, async () => {
   }
 
   // 执行扫描任务
-  // scanTask();
+  scanTask();
   // 初始化身份组管理任务
-  // kickManager.initialize();
+  kickManager.initialize();
 });
+
+const rejectModalHandler = require('./src/interactions/rejectModal');
+const applyModalHandler = require('./src/interactions/applyModal');
+const applyCommandHandler = require('./src/commands/apply');
+const roleManager = require('./src/utils/roleManager');
+const { handleAutoApply } = require('./src/interactions/autoApply');
 
 // 监听交互
 client.on(Events.InteractionCreate, async interaction => {
-  if (interaction.isChatInputCommand()) {
-    const command = client.commands.get(interaction.commandName);
-    if (command) await command.execute(interaction, client);
-  } else if (interaction.type === InteractionType.ModalSubmit) {
-    if (interaction.customId.startsWith('rejectModal:')) {
-      require('./src/interactions/rejectModal')(interaction, client);
-    } else {
-      require('./src/interactions/applyModal')(interaction, client);
-    }
-  } else if (interaction.isButton()) {
-    // 入群申请按钮处理
-    if (interaction.customId.startsWith('openApplyModal')) {
-      const apply = require('./src/commands/apply');
-      await apply.handleButton(interaction, client);
-      return;
-    }
-    // 审核按钮处理
-    if (interaction.customId.startsWith('approve') || interaction.customId.startsWith('reject')) {
-      const [action, userId, targetRoleId] = interaction.customId.split(':');
-      if (userId && targetRoleId) {
-        const roleManager = require('./src/utils/roleManager');
-        await roleManager.handleReview(interaction, action, userId, targetRoleId, client);
+  try {
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+      if (command) await command.execute(interaction, client);
+    } else if (interaction.type === InteractionType.ModalSubmit) {
+      if (interaction.customId.startsWith('rejectModal:')) {
+        await rejectModalHandler(interaction, client);
+      } else {
+        await applyModalHandler(interaction, client);
       }
-      return;
+    } else if (interaction.isButton()) {
+      const [customIdPrefix] = interaction.customId.split(':');
+
+      switch (customIdPrefix) {
+        case 'openApplyModal':
+          await applyCommandHandler.handleButton(interaction, client);
+          break;
+        case 'approve':
+        case 'reject':
+          const [action, userId, targetRoleId] = interaction.customId.split(':');
+          if (userId && targetRoleId) {
+            await roleManager.handleReview(interaction, action, userId, targetRoleId, client);
+          }
+          break;
+        case 'autoApply':
+          await handleAutoApply(interaction);
+          break;
+      }
     }
-    // 自动审核按钮处理
-    if (interaction.customId.startsWith('autoApply')) {
-      const { handleAutoApply } = require('./src/interactions/autoApply');
-      await handleAutoApply(interaction);
-      return;
+  } catch (error) {
+    console.error('交互处理失败:', error);
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({ content: '处理您的请求时发生错误。', ephemeral: true });
+    } else {
+      await interaction.reply({ content: '处理您的请求时发生错误。', ephemeral: true });
     }
   }
 });
