@@ -65,10 +65,11 @@ async function logAtRiskMembers(client, config) {
             );
 
             for (const stat of usersStats) {
-                if (!whitelist.includes(stat.user_id)) {
+                const userIdStr = String(stat.user_id);
+                if (!whitelist.includes(userIdStr)) {
                     // 使用 Map 存储每个用户最新的时间戳，以防他们在多个数据库中都有记录
-                    if (!atRiskMembers.has(stat.user_id) || atRiskMembers.get(stat.user_id) < stat.last_message_timestamp) {
-                        atRiskMembers.set(stat.user_id, stat.last_message_timestamp);
+                    if (!atRiskMembers.has(userIdStr) || atRiskMembers.get(userIdStr) < stat.last_message_timestamp) {
+                        atRiskMembers.set(userIdStr, stat.last_message_timestamp);
                     }
                 }
             }
@@ -165,8 +166,9 @@ async function scanAndKick() {
                     memberIds
                 );
                 for (const stat of usersStats) {
-                    if (!memberLastSeen.has(stat.user_id) || memberLastSeen.get(stat.user_id) < stat.last_message_timestamp) {
-                        memberLastSeen.set(stat.user_id, stat.last_message_timestamp);
+                    const userIdStr = String(stat.user_id);
+                    if (!memberLastSeen.has(userIdStr) || memberLastSeen.get(userIdStr) < stat.last_message_timestamp) {
+                        memberLastSeen.set(userIdStr, stat.last_message_timestamp);
                     }
                 }
             } catch (dbError) {
