@@ -181,7 +181,7 @@ async function scanAndKick() {
 
         // 3. 找出不活跃成员并移除其所有相关身份组
         for (const [memberId, roles] of membersToProcess.entries()) {
-            if (whitelist.includes(memberId)) continue;
+            if (whitelist.includes(String(memberId))) continue;
 
             const lastSeen = memberLastSeen.get(memberId);
             if (!lastSeen || lastSeen < inactivityThreshold) {
