@@ -63,10 +63,8 @@ client.once(Events.ClientReady, async () => {
     console.error('全局命令注册失败:', err);
   }
 
-  // 执行扫描任务
-  scanTask();
-  // 初始化身份组管理任务
-  kickManager.initialize();
+  // scanTask();
+  // kickManager.initialize();
 });
 
 const rejectModalHandler = require('./src/interactions/rejectModal');
@@ -74,6 +72,7 @@ const applyModalHandler = require('./src/interactions/applyModal');
 const applyCommandHandler = require('./src/commands/apply');
 const roleManager = require('./src/utils/roleManager');
 const { handleAutoApply } = require('./src/interactions/autoApply');
+const { handleVote } = require('./src/interactions/voteHandler');
 
 // 监听交互
 client.on(Events.InteractionCreate, async interaction => {
@@ -104,6 +103,9 @@ client.on(Events.InteractionCreate, async interaction => {
         case 'autoApply':
           await handleAutoApply(interaction);
           break;
+       case 'vote':
+           await handleVote(interaction);
+           break;
       }
     }
   } catch (error) {

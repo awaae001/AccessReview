@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const { EmbedBuilder } = require('discord.js');
 const roleConfig = require('../../data/role_config.json');
+const voteManager = require('../utils/voteManager');
 
 const cooldownsFilePath = path.join(__dirname, '..', '..', 'data', 'cooldowns.json');
 
@@ -88,7 +89,8 @@ async function handleAutoApply(interaction) {
       console.error(`[autoApply/handleAutoApply] 无法在 role_config.json 中找到 role_id 为 ${targetRoleId} 的配置`);
       return interaction.reply({ content: '审核配置错误，找不到对应的身份组设置。', ephemeral: true });
   }
-  const configData = roleConfig[configKey].data;
+  const config = roleConfig[configKey];
+  const configData = config.data;
   const threshold = configData.threshold;
 
   if (configData.musthold_role_id && configData.musthold_role_id !== "0") {
@@ -126,32 +128,49 @@ async function handleAutoApply(interaction) {
     const adminChannel = await client.channels.fetch(adminChannelId);
 
     if (row && row[dbKv] >= threshold) {
-      try {
-        await member.roles.add(targetRoleId);
-        console.log(`[autoApply/handleAutoApply] 用户 ${userId} 审核通过，已分配身份组 ${targetRoleId}`);
-        const successEmbed = new EmbedBuilder()
-          .setTitle('审核通过')
-          .setDescription(`恭喜！您已通过自动审核，并获得了相应的身份组。`)
-          .setColor(0x2ecc71)
-          .setTimestamp();
-        interaction.reply({ embeds: [successEmbed], ephemeral: true });
-
-        if (adminChannel) {
-          const adminEmbed = new EmbedBuilder()
-            .setTitle('自动审核日志')
-            .setDescription(`用户 ${member} (${userId}) 的申请已自动通过。`)
-            .setColor(0x2ecc71)
-            .addFields(
-              { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },
-              { name: '审核状态', value: '通过', inline: true },
-              { name: '服务器', value: `${guild.name}`, inline: false }
-            )
+      // 检查是否需要人工审核
+      if (config.manual_revive === true) {
+        try {
+          await voteManager.createVote(interaction, config);
+          const reviewEmbed = new EmbedBuilder()
+            .setTitle('申请已提交')
+            .setDescription('您的申请已满足基本条件并成功提交至人工审核渠道，请耐心等待审核结果')
+            .setColor(0x3498db)
             .setTimestamp();
-          adminChannel.send({ embeds: [adminEmbed] });
+          return interaction.reply({ embeds: [reviewEmbed], ephemeral: true });
+        } catch (error) {
+          console.error(`[autoApply/handleAutoApply] 创建投票失败:`, error);
+          return interaction.reply({ content: '提交人工审核时发生错误，请联系管理员。', ephemeral: true });
         }
-      } catch (error) {
-        console.error(`[autoApply/handleAutoApply] 分配身份组失败:`, error);
-        interaction.reply({ content: '审核通过，但在分配身份组时遇到问题，请联系管理员。', ephemeral: true });
+      } else {
+        // 原始的自动通过逻辑
+        try {
+          await member.roles.add(targetRoleId);
+          console.log(`[autoApply/handleAutoApply] 用户 ${userId} 审核通过，已分配身份组 ${targetRoleId}`);
+          const successEmbed = new EmbedBuilder()
+            .setTitle('审核通过')
+            .setDescription(`恭喜！您已通过自动审核，并获得了相应的身份组。`)
+            .setColor(0x2ecc71)
+            .setTimestamp();
+          interaction.reply({ embeds: [successEmbed], ephemeral: true });
+
+          if (adminChannel) {
+            const adminEmbed = new EmbedBuilder()
+              .setTitle('自动审核日志')
+              .setDescription(`用户 ${member} (${userId}) 的申请已自动通过。`)
+              .setColor(0x2ecc71)
+              .addFields(
+                { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },
+                { name: '审核状态', value: '通过', inline: true },
+                { name: '服务器', value: `${guild.name}`, inline: false }
+              )
+              .setTimestamp();
+            adminChannel.send({ embeds: [adminEmbed] });
+          }
+        } catch (error) {
+          console.error(`[autoApply/handleAutoApply] 分配身份组失败:`, error);
+          interaction.reply({ content: '审核通过，但在分配身份组时遇到问题，请联系管理员。', ephemeral: true });
+        }
       }
     } else {
       const currentValue = row ? row[dbKv] : 0;
