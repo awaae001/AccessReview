@@ -3,6 +3,7 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, Collection, Events, InteractionType } = require('discord.js');
 const { scanTask } = require('./src/tasks/scanner');
 const kickManager = require('./src/tasks/kickManager');
+const newMemberScanner = require('./src/tasks/newMemberScanner');
 const { sendLog } = require('./src/utils/logger');
 
 const client = new Client({
@@ -26,6 +27,7 @@ client.commands.set('apply', require('./src/commands/apply'));
 client.commands.set('creat_apply_ed', require('./src/commands/create_apply_embed'));
 client.commands.set('refresh_db', require('./src/commands/refresh_db'));
 client.commands.set('query', require('./src/commands/query'));
+client.commands.set('query_new_members', require('./src/commands/query_new_members'));
 
 // 监听 ready
 client.once(Events.ClientReady, async () => {
@@ -65,6 +67,7 @@ client.once(Events.ClientReady, async () => {
 
   // scanTask();
   // kickManager.initialize();
+  newMemberScanner.initialize();
 });
 
 const rejectModalHandler = require('./src/interactions/rejectModal');
@@ -73,13 +76,18 @@ const applyCommandHandler = require('./src/commands/apply');
 const roleManager = require('./src/utils/roleManager');
 const { handleAutoApply } = require('./src/interactions/autoApply');
 const { handleVote } = require('./src/interactions/voteHandler');
+const { handleQueryNewMembers } = require('./src/interactions/queryNewMembersHandler');
 
 // 监听交互
 client.on(Events.InteractionCreate, async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
-      const command = client.commands.get(interaction.commandName);
-      if (command) await command.execute(interaction, client);
+      if (interaction.commandName === 'query_new_members') {
+        await handleQueryNewMembers(interaction);
+      } else {
+        const command = client.commands.get(interaction.commandName);
+        if (command) await command.execute(interaction, client);
+      }
     } else if (interaction.type === InteractionType.ModalSubmit) {
       if (interaction.customId.startsWith('rejectModal:')) {
         await rejectModalHandler(interaction, client);
