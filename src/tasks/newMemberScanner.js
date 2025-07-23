@@ -3,7 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { Events } = require('discord.js');
 const { sendLog } = require('../utils/logger');
-const { enqueueOperation } = require('../utils/fileLock');
+const { enqueueOperation } = require('../fileLock');
 
 const configPath = path.join(__dirname, '..', '..', 'data', 'new', 'new_scam.json');
 let config = {};

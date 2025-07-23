@@ -5,6 +5,7 @@ const { scanTask } = require('./src/tasks/scanner');
 const kickManager = require('./src/tasks/kickManager');
 const newMemberScanner = require('./src/tasks/newMemberScanner');
 const { sendLog } = require('./src/utils/logger');
+const { enqueueOperation } = require('./src/fileLock');
 
 const client = new Client({
   intents: [

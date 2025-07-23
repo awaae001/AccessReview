@@ -1,6 +1,7 @@
 const fs = require('fs/promises');
 const path = require('path');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { sendLog } = require('./logger');
 
 const votesFilePath = path.join(__dirname, '..', '..', 'data', 'votes.json');
 
@@ -90,6 +91,13 @@ async function createVote(interaction, config) {
 
   await saveVotes(votes);
   console.log(`[voteManager/createVote] 已为用户 ${requester.id} 的申请创建投票，ID: ${voteId}`);
+
+  // Send log
+  await sendLog({
+    module: '投票系统',
+    action: '发起投票',
+    info: `为用户 <@${requester.id}> 的身份组申请 <@&${targetRoleId}> 发起了投票。\n[点击查看投票](https://discord.com/channels/${guild_id}/${reviewChannel.id}/${voteMessage.id})\n投票ID: ${voteId}`
+  });
 }
 
 // Called from voteHandler.js to check the status after a vote
@@ -228,6 +236,13 @@ async function finalizeVote(client, voteId, result) {
 
   await message.edit({ embeds: [finalEmbed], components: finalComponents });
   console.log(`[voteManager/finalizeVote] 投票 ${voteId} 已结束，结果: ${result}`);
+
+  // Send log
+  await sendLog({
+    module: '投票系统',
+    action: '投票结束',
+    info: `用户 <@${requesterId}> 的申请投票已结束，结果为 **${result === 'approved' ? '通过' : '拒绝'}**。\n[点击查看投票](https://discord.com/channels/${config.guild_id}/${channelId}/${messageId})\n投票ID: ${voteId}`
+  }, result === 'approved' ? 'info' : 'warn');
 }
 
 module.exports = {
