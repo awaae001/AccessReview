@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { Events } = require('discord.js');
 const { sendLog } = require('../utils/logger');
+const { enqueueOperation } = require('../utils/fileLock');
 
 const configPath = path.join(__dirname, '..', '..', 'data', 'new', 'new_scam.json');
 let config = {};
@@ -28,19 +29,21 @@ async function loadConfig() {
  * @param {string} filePath - 数据文件的路径
  */
 async function readDataFile(filePath) {
-    try {
-        const fullPath = path.join(__dirname, '..', '..', filePath);
-        await fs.access(fullPath);
-        const data = await fs.readFile(fullPath, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            // 文件不存在是正常情况，返回一个空对象
-            return {};
+    return enqueueOperation(filePath, async () => {
+        try {
+            const fullPath = path.join(__dirname, '..', '..', filePath);
+            await fs.access(fullPath);
+            const data = await fs.readFile(fullPath, 'utf8');
+            return JSON.parse(data);
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                return {};
+            }
+            console.error(`读取数据文件 ${filePath} 失败:`, error);
+            // 在队列中抛出错误，让调用者能感知到
+            throw error;
         }
-        console.error(`读取数据文件 ${filePath} 失败:`, error);
-        return null; // 表示读取时发生严重错误
-    }
+    });
 }
 
 /**
@@ -49,14 +52,17 @@ async function readDataFile(filePath) {
  * @param {object} data - 要写入的数据
  */
 async function writeDataFile(filePath, data) {
-    try {
-        const fullPath = path.join(__dirname, '..', '..', filePath);
-        // 确保目录存在
-        await fs.mkdir(path.dirname(fullPath), { recursive: true });
-        await fs.writeFile(fullPath, JSON.stringify(data, null, 4), 'utf8');
-    } catch (error) {
-        console.error(`写入数据文件 ${filePath} 失败:`, error);
-    }
+    return enqueueOperation(filePath, async () => {
+        try {
+            const fullPath = path.join(__dirname, '..', '..', filePath);
+            await fs.mkdir(path.dirname(fullPath), { recursive: true });
+            await fs.writeFile(fullPath, JSON.stringify(data, null, 4), 'utf8');
+        } catch (error) {
+            console.error(`写入数据文件 ${filePath} 失败:`, error);
+            // 在队列中抛出错误
+            throw error;
+        }
+    });
 }
 
 /**
@@ -126,7 +132,10 @@ async function handleGuildMemberAdd(member) {
 
     try {
         const today = new Date().toISOString().slice(0, 10);
-        const data = await readDataFile(task.filepath);
+        const data = await readDataFile(task.filepath).catch(err => {
+            console.error(`[handleGuildMemberAdd] readDataFile 失败:`, err);
+            return null;
+        });
         if (data === null) return;
 
         if (!data[today]) {
@@ -136,7 +145,6 @@ async function handleGuildMemberAdd(member) {
 
         await writeDataFile(task.filepath, data);
         console.log(`服务器 ${member.guild.name} 有新成员加入，已更新统计。`);
-        await sendLog({ module: 'NewMemberScanner', action: 'Member Add', info: `服务器 ${member.guild.name} (${member.guild.id})，用户 ${member.user.tag} (${member.id}) 加入` });
     } catch (error) {
         console.error(`处理成员加入事件时出错:`, error);
     }
@@ -155,7 +163,10 @@ async function handleGuildMemberRemove(member) {
 
     try {
         const today = new Date().toISOString().slice(0, 10);
-        const data = await readDataFile(task.filepath);
+        const data = await readDataFile(task.filepath).catch(err => {
+            console.error(`[handleGuildMemberRemove] readDataFile 失败:`, err);
+            return null;
+        });
         if (data === null) return;
 
         if (!data[today]) {
@@ -165,7 +176,6 @@ async function handleGuildMemberRemove(member) {
 
         await writeDataFile(task.filepath, data);
         console.log(`服务器 ${member.guild.name} 有成员离开，已更新统计。`);
-        await sendLog({ module: 'NewMemberScanner', action: 'Member Remove', info: `服务器 ${member.guild.name} (${member.guild.id})，用户 ${member.user.tag} (${member.id}) 离开` });
     } catch (error) {
         console.error(`处理成员离开事件时出错:`, error);
     }
@@ -190,7 +200,10 @@ async function handleGuildMemberUpdate(oldMember, newMember) {
 
     try {
         const today = new Date().toISOString().slice(0, 10);
-        const data = await readDataFile(task.filepath);
+        const data = await readDataFile(task.filepath).catch(err => {
+            console.error(`[handleGuildMemberUpdate] readDataFile 失败:`, err);
+            return null;
+        });
         if (data === null) return;
 
         if (!data[today]) {
