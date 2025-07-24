@@ -38,33 +38,77 @@ client.once(Events.ClientReady, async () => {
     action: 'Bot Startup',
     info: `Bot 已上线: ${client.user.tag}`
   });
-
-  // 自动全局注册 Slash 命令
-  try {
-    const { REST, Routes } = require('discord.js');
-    const fs = require('fs');
-    const path = require('path');
-    const commands = [];
-    const commandsPath = path.join(__dirname, 'src/commands');
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-      const command = require(path.join(commandsPath, file));
-      if (command.data) commands.push(command.data.toJSON());
-    }
-    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-    const CLIENT_ID = process.env.CLIENT_ID;
-    if (CLIENT_ID) {
-      await rest.put(
-        Routes.applicationCommands(CLIENT_ID),
-        { body: commands }
-      );
-      console.log('全局 Slash 命令注册成功！');
-    } else {
-      console.log('未设置 CLIENT_ID，跳过全局命令注册。');
-    }
-  } catch (err) {
-    console.error('全局命令注册失败:', err);
+// 注册 Slash 命令到指定服务器
+try {
+  const { REST, Routes } = require('discord.js');
+  const fs = require('fs');
+  const path = require('path');
+  const commands = [];
+  const commandsPath = path.join(__dirname, 'src/commands');
+  const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+  for (const file of commandFiles) {
+    const command = require(path.join(commandsPath, file));
+    if (command.data) commands.push(command.data.toJSON());
   }
+  const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+  const CLIENT_ID = process.env.CLIENT_ID;
+  
+  if (CLIENT_ID) {
+    // 从环境变量读取服务器 ID 列表
+    const serverIds = process.env.SERVER_IDS ? process.env.SERVER_IDS.split(',').map(id => id.trim()) : [];
+    
+    if (serverIds.length > 0) {
+      console.log(`准备为 ${serverIds.length} 个服务器注册命令...`);
+      
+      // 为每个服务器注册命令
+      for (const serverId of serverIds) {
+        try {
+          // 首先删除该服务器的所有现有命令
+          console.log(`正在删除服务器 ${serverId} 的所有命令...`);
+          await rest.put(
+            Routes.applicationGuildCommands(CLIENT_ID, serverId),
+            { body: [] }
+          );
+          console.log(`服务器 ${serverId} 的命令已清空`);
+          
+          // 然后注册新命令
+          console.log(`正在为服务器 ${serverId} 注册命令...`);
+          await rest.put(
+            Routes.applicationGuildCommands(CLIENT_ID, serverId),
+            { body: commands }
+          );
+          console.log(`服务器 ${serverId} 的命令注册成功！`);
+          
+          await sendLog({
+            module: 'Main',
+            action: 'Command Registration',
+            info: `已为服务器 ${serverId} 注册 ${commands.length} 个命令`
+          });
+        } catch (guildErr) {
+          console.error(`服务器 ${serverId} 命令注册失败:`, guildErr);
+          await sendLog({
+            module: 'Main',
+            action: 'Command Registration Error',
+            error: `服务器 ${serverId} 命令注册失败: ${guildErr.message}`
+          });
+        }
+      }
+      
+      console.log('所有服务器命令注册完成！');
+    } else {
+      console.log('未在 SERVER_IDS 中配置服务器，跳过命令注册。');
+    }
+  } else {
+    console.log('未设置 CLIENT_ID，跳过命令注册。');
+  }
+} catch (err) {
+  console.error('命令注册失败:', err);
+  await sendLog({
+    module: 'Main',
+    action: 'Command Registration Error',
+    error: `命令注册失败: ${err.message}`
+  });
+}
 
   // scanTask();
   // kickManager.initialize();
