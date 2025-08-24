@@ -1,81 +1,70 @@
 const { getCategoryConfig } = require('../utils/configManager');
-const { addApply } = require('../utils/persistence');
-const { PermissionsBitField } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { findUserApplyHistory, findActiveApply } = require('../utils/persistence');
 
 module.exports = {
-    name: 'apply', // 这个名字对应 customId 的第一部分
+    name: 'apply', // Corresponds to the first part of customId
     async execute(interaction) {
         const [, guildId, categoryId] = interaction.customId.split(':');
         const member = interaction.member;
+        const userId = interaction.user.id;
 
-        // 1. 获取配置
+        // 1. Check user's application history
+        const userHistory = findUserApplyHistory(guildId, userId);
+        const activeApply = findActiveApply(guildId, userId, categoryId);
+
+        const allApplies = [...userHistory, ...(activeApply ? [activeApply] : [])];
+
+        const isRejected = allApplies.some(apply => apply.status === 'rejected');
+        if (isRejected) {
+            return interaction.reply({
+                content: '您的申请已被拒绝，无法再次提交 \n如有疑问，请联系管理员 ',
+                flags: 64, // Ephemeral
+            });
+        }
+
+        const hasPendingOrApproved = allApplies.some(apply => apply.status === 'pending' || apply.status === 'approved');
+        if (hasPendingOrApproved) {
+            return interaction.reply({
+                content: '您已经有一个正在进行中或已批准的申请，请勿重复提交 ',
+                flags: 64, // Ephemeral
+            });
+        }
+
+        // 2. Get configuration
         const categoryConfig = getCategoryConfig(guildId, categoryId);
         if (!categoryConfig || !categoryConfig.role_config || !categoryConfig.role_config.musthold_role_id) {
-            console.error(`[newApplyHandler] 无法找到 ${guildId}:${categoryId} 的 musthold_role_id 配置。`);
-            return interaction.reply({ content: '申请配置错误，请联系管理员。', ephemeral: true });
+            console.error(`[newApplyHandler] Cannot find musthold_role_id config for ${guildId}:${categoryId}.`);
+            return interaction.reply({ content: 'Application configuration error, please contact an administrator.', flags: 64 });
         }
 
         const mustHoldRoleId = categoryConfig.role_config.musthold_role_id;
 
-        // 2. 执行前置检查
+        // 3. Perform prerequisite checks
         if (!member.roles.cache.has(mustHoldRoleId)) {
-            // 如果用户没有所需身份组，则回复提示消息
             return interaction.reply({
-                content: `抱歉，您需要持有特定的身份组才能进行申请。`,
-                ephemeral: true, // 消息仅对该用户可见
+                content: `抱歉，您需要持有特定的身份组才能申请 `,
+                flags: 64,
             });
         }
-        
-        // 权限检查通过，开始创建频道
-        await interaction.reply({
-            content: '身份验证通过！正在为您创建申请频道...',
-            ephemeral: true,
-        });
 
-        try {
-            const guild = interaction.guild;
-            const user = interaction.user;
-            const categoryChannel = await guild.channels.fetch(categoryId);
+        // 4. Create and show the modal
+        const modal = new ModalBuilder()
+            .setCustomId(`newApplyModal:${guildId}:${categoryId}`)
+            .setTitle(`申请 - ${categoryConfig.category_name || categoryConfig.name}`);
 
-            // 创建一个新的私密频道
-            const channel = await guild.channels.create({
-                name: `申请-${user.username}-${categoryConfig.category_name || categoryConfig.name}`,
-                type: 0, // 0 表示文本频道
-                parent: categoryChannel, // 继承父类别的权限
-                permissionOverwrites: [
-                    {
-                        id: guild.id, // @everyone 角色
-                        deny: [PermissionsBitField.Flags.ViewChannel],
-                    },
-                    {
-                        id: user.id, // 申请人
-                        allow: [
-                            PermissionsBitField.Flags.ViewChannel,
-                            PermissionsBitField.Flags.SendMessages,
-                            PermissionsBitField.Flags.SendMessagesInThreads,
-                        ],
-                    },
-                ],
-            });
+        const selfIntroductionInput = new TextInputBuilder()
+            .setCustomId('selfIntroduction')
+            .setLabel('自我介绍')
+            .setPlaceholder('请详细介绍您自己，以及您申请该身份组的理由 ')
+            .setStyle(TextInputStyle.Paragraph) // Paragraph for long text
+            .setMinLength(50)
+            .setRequired(true);
 
-            // 在新频道中发送欢迎消息
-            await channel.send(`欢迎 ${user}！您的 **${categoryConfig.category_name || categoryConfig.name}** 申请已开始。请在此频道中与我们沟通。`);
+        const firstActionRow = new ActionRowBuilder().addComponents(selfIntroductionInput);
 
-            // 记录到持久化数据中
-            addApply({
-                channelId: channel.id,
-                userId: user.id,
-                guildId: guild.id,
-                categoryId: categoryId,
-                applyTime: new Date().toISOString(),
-            });
+        modal.addComponents(firstActionRow);
 
-        } catch (error) {
-            console.error(`[newApplyHandler] 创建申请频道时出错:`, error);
-            await interaction.followUp({
-                content: '创建申请频道失败，请联系管理员',
-                ephemeral: true,
-            });
-        }
+        await interaction.showModal(modal);
     },
 };

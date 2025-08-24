@@ -11,6 +11,16 @@ module.exports = {
                 .setDescription('请选择一个申请类别')
                 .setRequired(true)
                 .setAutocomplete(true) // 启用自动完成
+        )
+        .addStringOption(option =>
+            option.setName('title')
+                .setDescription('自定义标题')
+                .setRequired(false)
+        )
+        .addStringOption(option =>
+            option.setName('context')
+                .setDescription('自定义描述内容')
+                .setRequired(false)
         ),
     async autocomplete(interaction) {
         const guildId = interaction.guild.id;
@@ -38,24 +48,29 @@ module.exports = {
 async execute(interaction) {
     // 权限检查
     if (!hasPermission(interaction.member, interaction.user.id)) {
-            return interaction.reply({ content: '你没有权限使用此命令。', ephemeral: true });
+            return interaction.reply({ content: '你没有权限使用此命令 ', ephemeral: true });
         }
 
         const guildId = interaction.guild.id;
         const categoryId = interaction.options.getString('category_id');
+        const customTitle = interaction.options.getString('title');
+        const customContext = interaction.options.getString('context');
         
         // 从配置中获取类别数据
         const guildConfig = getGuildConfig(guildId);
         if (!guildConfig || !guildConfig.data || !guildConfig.data[categoryId]) {
-            return interaction.reply({ content: '无效的申请类别或服务器配置。', ephemeral: true });
+            return interaction.reply({ content: '无效的申请类别或服务器配置 ', ephemeral: true });
         }
 
         const categoryConfig = guildConfig.data[categoryId];
 
         // 创建嵌入式消息
+        const title = customTitle || `**${categoryConfig.category_name || categoryConfig.name}** 申请面板`;
+        const description = customContext || `点击下方的按钮开始您的 **${categoryConfig.category_name || categoryConfig.name}** 申请流程 `;
+
         const embed = new EmbedBuilder()
-            .setTitle(`**${categoryConfig.category_name || categoryConfig.name}** 申请面板`)
-            .setDescription(`点击下方的按钮开始您的 **${categoryConfig.category_name || categoryConfig.name}** 申请流程。`)
+            .setTitle(title)
+            .setDescription(description)
             .setColor(0x0099FF);
 
         // 创建按钮
@@ -67,9 +82,7 @@ async execute(interaction) {
         const row = new ActionRowBuilder().addComponents(applyButton);
 
         // 发送消息
-        await interaction.reply({
-            embeds: [embed],
-            components: [row],
-        });
+        await interaction.channel.send({ embeds: [embed], components: [row] });
+        await interaction.reply({ content: '申请面板已成功创建 ', ephemeral: true });
     },
 };

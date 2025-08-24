@@ -166,7 +166,7 @@ async function scanChannel(taskId, task) {
                 messagesSinceLastWrite = 0;
             }
         }
-        await sendLog({ module: 'Scanner', action: 'Scan Complete', info: `频道 <#${channel_id}> 扫描完成 \n共扫描 ${totalMessagesScanned} 条消息 \n操作了 ${totalMembersAffected} 名成员。` });
+        await sendLog({ module: 'Scanner', action: 'Scan Complete', info: `频道 <#${channel_id}> 扫描完成 \n共扫描 ${totalMessagesScanned} 条消息 \n操作了 ${totalMembersAffected} 名成员 ` });
     } catch (error) {
     } finally {
         await db.close();

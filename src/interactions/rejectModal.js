@@ -25,13 +25,13 @@ module.exports = async (interaction, client) => {
     }
 
     if (!userId) {
-      await interaction.reply({ content: '未找到对应的申请记录。', flags: 64 });
+      await interaction.reply({ content: '未找到对应的申请记录 ', flags: 64 });
       return;
     }
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-      await interaction.reply({ content: '用户已不在服务器。', flags: 64 });
+      await interaction.reply({ content: '用户已不在服务器 ', flags: 64 });
       return;
     }
 
@@ -51,7 +51,7 @@ module.exports = async (interaction, client) => {
     }
 
     // 在频道中回复并发送公开消息
-    await interaction.reply({ content: `已拒绝 <@${userId}> 的申请。`, flags: 64 });
+    await interaction.reply({ content: `已拒绝 <@${userId}> 的申请 `, flags: 64 });
     await interaction.channel.send({
       embeds: [{
         title: '申请已拒绝',
@@ -88,9 +88,9 @@ module.exports = async (interaction, client) => {
     console.error(`[rejectModal] 处理拒绝模态框失败: ${err}`);
     try {
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '操作失败，发生未知错误。', flags: 64 });
+        await interaction.reply({ content: '操作失败，发生未知错误 ', flags: 64 });
       } else {
-        await interaction.followUp({ content: '操作失败，发生未知错误。', flags: 64 });
+        await interaction.followUp({ content: '操作失败，发生未知错误 ', flags: 64 });
       }
     } catch (e) {
       // ignore

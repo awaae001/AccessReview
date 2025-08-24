@@ -10,7 +10,7 @@ async function queryUserData(userId) {
         const dbFiles = (await fs.readdir(dbDir)).filter(file => file.startsWith('data_') && file.endsWith('.db'));
 
         if (dbFiles.length === 0) {
-            return { error: '未找到任何数据库文件。' };
+            return { error: '未找到任何数据库文件 ' };
         }
 
         let userData = [];
@@ -44,14 +44,14 @@ async function queryUserData(userId) {
         }
 
         if (userData.length === 0) {
-            return { error: `在所有数据库中都未找到用户ID: ${userId} 的数据。` };
+            return { error: `在所有数据库中都未找到用户ID: ${userId} 的数据 ` };
         }
 
         return { userData, targetUsername };
 
     } catch (error) {
         console.error(`[dataQuery/queryUserData] 查询用户 ${userId} 数据时出错:`, error);
-        return { error: '查询数据时发生内部错误。' };
+        return { error: '查询数据时发生内部错误 ' };
     }
 }
 

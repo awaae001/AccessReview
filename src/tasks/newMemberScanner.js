@@ -15,7 +15,7 @@ async function loadConfig() {
     try {
         const data = await fs.readFile(configPath, 'utf8');
         config = JSON.parse(data);
-        console.log('新成员扫描器配置加载成功。');
+        console.log('新成员扫描器配置加载成功 ');
         await sendLog({ module: 'NewMemberScanner', action: 'Load Config', info: '配置加载成功' });
     } catch (error) {
         console.error('加载新成员扫描器配置文件失败:', error);
@@ -73,7 +73,7 @@ async function runScan() {
     await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: '开始执行每日扫描' });
 
     if (!global.client || !global.client.isReady()) {
-        console.error('客户端未准备就绪，无法执行扫描。');
+        console.error('客户端未准备就绪，无法执行扫描 ');
         await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: '客户端未准备就绪，扫描中止' }, 'error');
         return;
     }
@@ -83,14 +83,14 @@ async function runScan() {
         try {
             const guild = await global.client.guilds.fetch(guildId);
             if (!guild) {
-                console.warn(`找不到服务器: ${guildId}，跳过此任务。`);
+                console.warn(`找不到服务器: ${guildId}，跳过此任务 `);
                 continue;
             }
 
             await guild.members.fetch(); // 获取所有成员
             const role = await guild.roles.fetch(task.role_id);
             if (!role) {
-                console.warn(`在服务器 ${guild.name} 中找不到角色: ${task.role_id}，跳过此任务。`);
+                console.warn(`在服务器 ${guild.name} 中找不到角色: ${task.role_id}，跳过此任务 `);
                 continue;
             }
 
@@ -99,7 +99,7 @@ async function runScan() {
 
             const data = await readDataFile(task.filepath);
             if (data === null) {
-                console.error(`读取数据文件 ${task.filepath} 失败，跳过此任务。`);
+                console.error(`读取数据文件 ${task.filepath} 失败，跳过此任务 `);
                 continue;
             }
             
@@ -117,7 +117,7 @@ async function runScan() {
             await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: `处理服务器 ${guildId} 时出错: ${error.message}` }, 'error');
         }
     }
-    console.log('新成员每日扫描完成。');
+    console.log('新成员每日扫描完成 ');
 }
 
 /**
@@ -144,7 +144,7 @@ async function handleGuildMemberAdd(member) {
         data[today].join = (data[today].join || 0) + 1;
 
         await writeDataFile(task.filepath, data);
-        console.log(`服务器 ${member.guild.name} 有新成员加入，已更新统计。`);
+        console.log(`服务器 ${member.guild.name} 有新成员加入，已更新统计 `);
     } catch (error) {
         console.error(`处理成员加入事件时出错:`, error);
     }
@@ -175,7 +175,7 @@ async function handleGuildMemberRemove(member) {
         data[today].leave = (data[today].leave || 0) + 1;
 
         await writeDataFile(task.filepath, data);
-        console.log(`服务器 ${member.guild.name} 有成员离开，已更新统计。`);
+        console.log(`服务器 ${member.guild.name} 有成员离开，已更新统计 `);
     } catch (error) {
         console.error(`处理成员离开事件时出错:`, error);
     }
@@ -212,10 +212,10 @@ async function handleGuildMemberUpdate(oldMember, newMember) {
 
         if (newHasRole) { // 获得角色
             data[today].role_join = (data[today].role_join || 0) + 1;
-            console.log(`服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 获得角色，已更新统计。`);
+            console.log(`服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 获得角色，已更新统计 `);
         } else { // 失去角色
             data[today].role_leave = (data[today].role_leave || 0) + 1;
-             console.log(`服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 失去角色，已更新统计。`);
+             console.log(`服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 失去角色，已更新统计 `);
         }
 
         await writeDataFile(task.filepath, data);
@@ -236,16 +236,16 @@ async function initialize() {
 
     // 2. 设置每日定时扫描任务 (例如每天的 23:59)
     cron.schedule('59 23 * * *', runScan);
-    console.log('每日新成员扫描定时任务已设置。');
+    console.log('每日新成员扫描定时任务已设置 ');
 
     // 3. 注册事件监听器
     if (global.client) {
         global.client.on(Events.GuildMemberAdd, handleGuildMemberAdd);
         global.client.on(Events.GuildMemberRemove, handleGuildMemberRemove);
         global.client.on(Events.GuildMemberUpdate, handleGuildMemberUpdate);
-        console.log('新成员加入/离开/角色更新事件监听器已注册。');
+        console.log('新成员加入/离开/角色更新事件监听器已注册 ');
     } else {
-        console.error('无法注册事件监听器：全局客户端实例未找到。');
+        console.error('无法注册事件监听器：全局客户端实例未找到 ');
     }
 }
 

@@ -40,7 +40,7 @@ for (const file of commandFiles) {
         client.commands.set(command.data.name, command);
         console.log(`已加载命令: ${command.data.name}`);
     } else {
-        console.log(`[警告] 文件 ${filePath} 中的命令缺少 "data" 或 "execute" 属性。`);
+        console.log(`[警告] 文件 ${filePath} 中的命令缺少 "data" 或 "execute" 属性 `);
     }
 }
 // 监听 ready
@@ -125,10 +125,10 @@ client.once(Events.ClientReady, async () => {
 
         console.log('所有服务器命令注册完成！');
       } else {
-        console.log('未在 SERVER_IDS 中配置服务器，跳过命令注册。');
+        console.log('未在 SERVER_IDS 中配置服务器，跳过命令注册 ');
       }
     } else {
-      console.log('未设置 CLIENT_ID，跳过命令注册。');
+      console.log('未设置 CLIENT_ID，跳过命令注册 ');
     }
   } catch (err) {
     console.error('命令注册失败:', err);
@@ -183,6 +183,9 @@ client.on(Events.InteractionCreate, async interaction => {
     else if (interaction.type === InteractionType.ModalSubmit) {
       if (interaction.customId.startsWith('rejectModal:')) {
         await rejectModalHandler(interaction, client);
+      } else if (interaction.customId.startsWith('newApplyModal:')) {
+        const newApplyModalHandler = require('./src/interactions/newApplyModalSubmit');
+        await newApplyModalHandler.execute(interaction);
       } else {
         await applyModalHandler(interaction, client);
       }
@@ -213,6 +216,10 @@ client.on(Events.InteractionCreate, async interaction => {
         case 'vote':
           await handleVote(interaction);
           break;
+        case 'review':
+          const reviewHandler = require('./src/interactions/reviewHandler');
+          await reviewHandler.execute(interaction);
+          break;
       }
     }
   } catch (error) {
@@ -220,10 +227,10 @@ client.on(Events.InteractionCreate, async interaction => {
     // 检查交互是否仍然可以回复
     if (interaction.replied || interaction.deferred) {
       // 如果已经回复或延迟，使用 followUp
-      await interaction.followUp({ content: '处理您的请求时发生错误。', ephemeral: true }).catch(console.error);
+      await interaction.followUp({ content: '处理您的请求时发生错误 ', ephemeral: true }).catch(console.error);
     } else {
       // 否则，使用 reply
-      await interaction.reply({ content: '处理您的请求时发生错误。', ephemeral: true }).catch(console.error);
+      await interaction.reply({ content: '处理您的请求时发生错误 ', ephemeral: true }).catch(console.error);
     }
   }
 });

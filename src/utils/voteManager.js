@@ -47,7 +47,7 @@ async function createVote(interaction, config) {
 
   const voteEmbed = new EmbedBuilder()
     .setTitle('身份组申请人工审核')
-    .setDescription(`用户 **${requester.user.tag}** (${requester.id}) 申请获得身份组 <@&${targetRoleId}>，需要投票决定是否批准。`)
+    .setDescription(`用户 **${requester.user.tag}** (${requester.id}) 申请获得身份组 <@&${targetRoleId}>，需要投票决定是否批准 `)
     .setColor(0x3498db)
     .addFields(
       { name: '申请人', value: `<@${requester.id}>`, inline: true },
@@ -96,7 +96,7 @@ async function createVote(interaction, config) {
   await sendLog({
     module: '投票系统',
     action: '发起投票',
-    info: `为用户 <@${requester.id}> 的身份组申请 <@&${targetRoleId}> 发起了投票。\n[点击查看投票](https://discord.com/channels/${guild_id}/${reviewChannel.id}/${voteMessage.id})\n投票ID: ${voteId}`
+    info: `为用户 <@${requester.id}> 的身份组申请 <@&${targetRoleId}> 发起了投票 \n[点击查看投票](https://discord.com/channels/${guild_id}/${reviewChannel.id}/${voteMessage.id})\n投票ID: ${voteId}`
   });
 }
 
@@ -114,13 +114,13 @@ async function checkVoteStatus(client, voteId) {
   const { revive_config, guild_id } = config;
 
   if (!revive_config) {
-    console.error(`[voteManager/checkVoteStatus] FATAL: 投票数据 ${voteId} 缺少 revive_config 配置。`, { voteData });
+    console.error(`[voteManager/checkVoteStatus] FATAL: 投票数据 ${voteId} 缺少 revive_config 配置 `, { voteData });
     return;
   }
   const { allow_vote_role } = revive_config;
   const { ratio_allow, ratio_reject } = allow_vote_role || {};
   if (!ratio_allow || !ratio_reject || !allow_vote_role) {
-    console.error(`[voteManager/checkVoteStatus] FATAL: 投票数据 ${voteId} 的 revive_config 或 allow_vote_role 不完整。`, { revive_config });
+    console.error(`[voteManager/checkVoteStatus] FATAL: 投票数据 ${voteId} 的 revive_config 或 allow_vote_role 不完整 `, { revive_config });
     return;
   }
 
@@ -217,20 +217,20 @@ async function startPendingPeriod(client, voteId) {
             originalEmbed.fields[0], // requester
             originalEmbed.fields[1], // role
             { name: '当前状态', value: `⏳ 等待管理员确认`, inline: false },
-            { name: '详情', value: `用户投票已达标。如果在 <t:${Math.floor(pendingUntil.getTime() / 1000)}:R> 内没有管理员拒绝，申请将自动通过。`, inline: false },
+            { name: '详情', value: `用户投票已达标 如果在 <t:${Math.floor(pendingUntil.getTime() / 1000)}:R> 内没有管理员拒绝，申请将自动通过 `, inline: false },
             originalEmbed.fields[3], // approve counts
             originalEmbed.fields[4]  // reject counts
         );
 
     await message.edit({ embeds: [pendingEmbed] });
 
-    console.log(`[voteManager/startPendingPeriod] 投票 ${voteId} 已进入管理员等待期。`);
+    console.log(`[voteManager/startPendingPeriod] 投票 ${voteId} 已进入管理员等待期 `);
 
     // Send log
     await sendLog({
         module: '投票系统',
         action: '进入管理员等待期',
-        info: `用户 <@${requesterId}> 的申请 <@&${targetRoleId}> 用户投票已达标，进入24小时等待期。\n[点击查看投票](https://discord.com/channels/${config.guild_id}/${channelId}/${messageId})\n投票ID: ${voteId}`
+        info: `用户 <@${requesterId}> 的申请 <@&${targetRoleId}> 用户投票已达标，进入24小时等待期 \n[点击查看投票](https://discord.com/channels/${config.guild_id}/${channelId}/${messageId})\n投票ID: ${voteId}`
     }, 'info');
 }
 
@@ -272,7 +272,7 @@ async function finalizeVote(client, voteId, result) {
     if (requester) {
       await requester.roles.add(targetRoleId);
       try {
-        await requester.send(`🎉 恭喜！您在 **${guild.name}** 的身份组申请 **(<@&${targetRoleId}>)** 已通过人工审核。`);
+        await requester.send(`🎉 恭喜！您在 **${guild.name}** 的身份组申请 **(<@&${targetRoleId}>)** 已通过人工审核 `);
       } catch (e) {
         console.log(`[voteManager/finalizeVote] 无法私信用户 ${requesterId}`);
       }
@@ -285,7 +285,7 @@ async function finalizeVote(client, voteId, result) {
     );
     if (requester) {
       try {
-        await requester.send(`很抱歉，您在 **${guild.name}** 的身份组申请 **(<@&${targetRoleId}>)** 未通过人工审核。`);
+        await requester.send(`很抱歉，您在 **${guild.name}** 的身份组申请 **(<@&${targetRoleId}>)** 未通过人工审核 `);
       } catch (e) {
         console.log(`[voteManager/finalizeVote] 无法私信用户 ${requesterId}`);
       }
@@ -299,7 +299,7 @@ async function finalizeVote(client, voteId, result) {
   await sendLog({
     module: '投票系统',
     action: '投票结束',
-    info: `用户 <@${requesterId}> 的申请投票已结束，结果为 **${result === 'approved' ? '通过' : '拒绝'}**。\n[点击查看投票](https://discord.com/channels/${config.guild_id}/${channelId}/${messageId})\n投票ID: ${voteId}`
+    info: `用户 <@${requesterId}> 的申请投票已结束，结果为 **${result === 'approved' ? '通过' : '拒绝'}** \n[点击查看投票](https://discord.com/channels/${config.guild_id}/${channelId}/${messageId})\n投票ID: ${voteId}`
   }, result === 'approved' ? 'info' : 'warn');
 }
 

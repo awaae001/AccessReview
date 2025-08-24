@@ -74,7 +74,7 @@ async function handleAutoApply(interaction) {
       const hoursLeft = Math.floor(timeLeft / 3600);
       const minutesLeft = Math.floor((timeLeft % 3600) / 60);
       return interaction.reply({
-        content: `您今天已经申请过了，请在 ${hoursLeft} 小时 ${minutesLeft} 分钟后重试。`,
+        content: `您今天已经申请过了，请在 ${hoursLeft} 小时 ${minutesLeft} 分钟后重试 `,
         ephemeral: true,
       });
     }
@@ -87,7 +87,7 @@ async function handleAutoApply(interaction) {
   const configKey = Object.keys(roleConfig).find(key => roleConfig[key].data.role_id === targetRoleId);
   if (!configKey) {
       console.error(`[autoApply/handleAutoApply] 无法在 role_config.json 中找到 role_id 为 ${targetRoleId} 的配置`);
-      return interaction.reply({ content: '审核配置错误，找不到对应的身份组设置。', ephemeral: true });
+      return interaction.reply({ content: '审核配置错误，找不到对应的身份组设置 ', ephemeral: true });
   }
   const config = roleConfig[configKey];
   const configData = config.data;
@@ -96,7 +96,7 @@ async function handleAutoApply(interaction) {
   if (configData.musthold_role_id && configData.musthold_role_id !== "0") {
     if (!interaction.member.roles.cache.has(configData.musthold_role_id)) {
       return interaction.reply({
-        content: `您需要持有 <@&${configData.musthold_role_id}> 身份组才能申请此身份组。`,
+        content: `您需要持有 <@&${configData.musthold_role_id}> 身份组才能申请此身份组 `,
         ephemeral: true,
       });
     }
@@ -112,7 +112,7 @@ async function handleAutoApply(interaction) {
   const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
     if (err) {
       console.error(`[autoApply/handleAutoApply] 无法连接到数据库: ${dbPath}`, err);
-      interaction.reply({ content: '审核时发生错误，无法连接到数据库。', ephemeral: true });
+      interaction.reply({ content: '审核时发生错误，无法连接到数据库 ', ephemeral: true });
       return;
     }
   });
@@ -120,7 +120,7 @@ async function handleAutoApply(interaction) {
   db.get(`SELECT ${dbKv} FROM user_stats WHERE user_id = ?`, [userId], async (err, row) => {
     if (err) {
       console.error(`[autoApply/handleAutoApply] 查询数据库失败:`, err);
-      interaction.reply({ content: '审核时发生错误，无法查询数据。', ephemeral: true });
+      interaction.reply({ content: '审核时发生错误，无法查询数据 ', ephemeral: true });
       db.close();
       return;
     }
@@ -140,7 +140,7 @@ async function handleAutoApply(interaction) {
           return interaction.reply({ embeds: [reviewEmbed], ephemeral: true });
         } catch (error) {
           console.error(`[autoApply/handleAutoApply] 创建投票失败:`, error);
-          return interaction.reply({ content: '提交人工审核时发生错误，请联系管理员。', ephemeral: true });
+          return interaction.reply({ content: '提交人工审核时发生错误，请联系管理员 ', ephemeral: true });
         }
       } else {
         // 原始的自动通过逻辑
@@ -149,7 +149,7 @@ async function handleAutoApply(interaction) {
           console.log(`[autoApply/handleAutoApply] 用户 ${userId} 审核通过，已分配身份组 ${targetRoleId}`);
           const successEmbed = new EmbedBuilder()
             .setTitle('审核通过')
-            .setDescription(`恭喜！您已通过自动审核，并获得了相应的身份组。`)
+            .setDescription(`恭喜！您已通过自动审核，并获得了相应的身份组 `)
             .setColor(0x2ecc71)
             .setTimestamp();
           interaction.reply({ embeds: [successEmbed], ephemeral: true });
@@ -157,7 +157,7 @@ async function handleAutoApply(interaction) {
           if (adminChannel) {
             const adminEmbed = new EmbedBuilder()
               .setTitle('自动审核日志')
-              .setDescription(`用户 ${member} (${userId}) 的申请已自动通过。`)
+              .setDescription(`用户 ${member} (${userId}) 的申请已自动通过 `)
               .setColor(0x2ecc71)
               .addFields(
                 { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },
@@ -169,7 +169,7 @@ async function handleAutoApply(interaction) {
           }
         } catch (error) {
           console.error(`[autoApply/handleAutoApply] 分配身份组失败:`, error);
-          interaction.reply({ content: '审核通过，但在分配身份组时遇到问题，请联系管理员。', ephemeral: true });
+          interaction.reply({ content: '审核通过，但在分配身份组时遇到问题，请联系管理员 ', ephemeral: true });
         }
       }
     } else {
@@ -177,7 +177,7 @@ async function handleAutoApply(interaction) {
       console.log(`[autoApply/handleAutoApply] 用户 ${userId} 审核未通过，当前值: ${currentValue}, 阈值: ${threshold}`);
       const failureEmbed = new EmbedBuilder()
         .setTitle('审核未通过')
-        .setDescription(`抱歉，您未达到自动审核的要求。\n\n**当前进度**: ${currentValue} / ${threshold}`)
+        .setDescription(`抱歉，您未达到自动审核的要求 \n\n**当前进度**: ${currentValue} / ${threshold}`)
         .setColor(0xe74c3c)
         .setTimestamp();
       interaction.reply({ embeds: [failureEmbed], ephemeral: true });
@@ -185,7 +185,7 @@ async function handleAutoApply(interaction) {
       if (adminChannel) {
           const adminEmbed = new EmbedBuilder()
             .setTitle('自动审核日志')
-            .setDescription(`用户 ${member} (${userId}) 的申请已自动拒绝。`)
+            .setDescription(`用户 ${member} (${userId}) 的申请已自动拒绝 `)
             .setColor(0xe74c3c)
             .addFields(
               { name: '申请的身份组', value: `<@&${targetRoleId}>`, inline: true },

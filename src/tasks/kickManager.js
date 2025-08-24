@@ -33,7 +33,7 @@ async function logAtRiskMembers(client, config) {
             const guild = await client.guilds.fetch(guildId);
             const role = await guild.roles.fetch(roleId);
             if (!role) {
-                console.warn(`[KickManager] 在服务器 ${guildId} 未找到身份组 ${roleId}，跳过危险用户扫描。`);
+                console.warn(`[KickManager] 在服务器 ${guildId} 未找到身份组 ${roleId}，跳过危险用户扫描 `);
                 continue;
             }
             // 直接获取拥有该身份组的成员
@@ -47,7 +47,7 @@ async function logAtRiskMembers(client, config) {
 
     const memberIdsArray = Array.from(allMemberIds);
     if (memberIdsArray.length === 0) {
-        await sendLog({ module: 'KickManager', action: 'AtRiskList', info: `任务 '${name}' 未发现需要关注的危险用户。` });
+        await sendLog({ module: 'KickManager', action: 'AtRiskList', info: `任务 '${name}' 未发现需要关注的危险用户 ` });
         return;
     }
 
@@ -92,7 +92,7 @@ async function logAtRiskMembers(client, config) {
         }).join('\n');
         await sendLog({ module: 'KickManager', action: 'AtRiskList', info: `任务 '${name}' 的 5 个最危险用户:\n${atRiskList}` });
     } else {
-        await sendLog({ module: 'KickManager', action: 'AtRiskList', info: `任务 '${name}' 未发现需要关注的危险用户。` });
+        await sendLog({ module: 'KickManager', action: 'AtRiskList', info: `任务 '${name}' 未发现需要关注的危险用户 ` });
     }
 }
 
@@ -100,12 +100,12 @@ async function logAtRiskMembers(client, config) {
 async function scanAndKick() {
     const kickConfig = await loadKickConfig();
     if (!kickConfig) {
-        console.log('[KickManager] 未找到或无法加载踢人配置，任务中止。');
+        console.log('[KickManager] 未找到或无法加载踢人配置，任务中止 ');
         return;
     }
 
     if (!global.client || !global.client.isReady()) {
-        console.warn('[KickManager] Discord 客户端未就绪，跳过本次扫描。');
+        console.warn('[KickManager] Discord 客户端未就绪，跳过本次扫描 ');
         return;
     }
     const client = global.client;
@@ -128,7 +128,7 @@ async function scanAndKick() {
                 const guild = await client.guilds.fetch(guildId);
                 const role = await guild.roles.fetch(roleId);
                 if (!role) {
-                    console.warn(`[KickManager] 在服务器 ${guildId} 未找到身份组 ${roleId}，跳过。`);
+                    console.warn(`[KickManager] 在服务器 ${guildId} 未找到身份组 ${roleId}，跳过 `);
                     continue;
                 }
                 // 直接获取拥有该身份组的成员
@@ -147,7 +147,7 @@ async function scanAndKick() {
         }
 
         if (membersToProcess.size === 0) {
-            await sendLog({ module: 'KickManager', action: 'Summary', info: `任务 '${name}' 未找到需要处理的成员。` });
+            await sendLog({ module: 'KickManager', action: 'Summary', info: `任务 '${name}' 未找到需要处理的成员 ` });
             await logAtRiskMembers(client, config);
             continue; // 处理下一个配置
         }
@@ -231,7 +231,7 @@ async function scanAndKick() {
         }
         await logAtRiskMembers(client, config);
     }
-    console.log('[KickManager] 所有踢人配置任务均已处理完毕。');
+    console.log('[KickManager] 所有踢人配置任务均已处理完毕 ');
 }
 
 // 设置定时任务，每天凌晨4点执行
@@ -243,7 +243,7 @@ cron.schedule('0 4 * * *', async () => {
 // 导出函数以便于在主文件里直接调用启动
 module.exports = {
     initialize: () => {
-        console.log('[KickManager] 身份组自动管理任务已初始化。');
+        console.log('[KickManager] 身份组自动管理任务已初始化 ');
         try {
             scanAndKick();
         } catch (error) {

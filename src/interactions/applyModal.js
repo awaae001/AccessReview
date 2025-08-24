@@ -61,7 +61,7 @@ module.exports = async (interaction, client) => {
     }
 
     if (alreadyHasRole) {
-      await interaction.reply({ content: '你已拥有该身份组，无法再次申请。', flags: 64 });
+      await interaction.reply({ content: '你已拥有该身份组，无法再次申请 ', flags: 64 });
       return;
     }
 
@@ -72,7 +72,7 @@ module.exports = async (interaction, client) => {
         (!d.status || (d.status !== 'approved' && d.status !== 'rejected'))
     );
     if (hasPending) {
-      await interaction.reply({ content: '你有未完成的申请，请等待审核结果。', flags: 64 });
+      await interaction.reply({ content: '你有未完成的申请，请等待审核结果 ', flags: 64 });
       return;
     }
 
@@ -87,7 +87,7 @@ module.exports = async (interaction, client) => {
       const timeSinceLastReject = Date.now() - lastRejected.timestamp;
       if (timeSinceLastReject < 24 * 60 * 60 * 1000) { // 24 小时
         await interaction.reply({
-          content: `你在 ${new Date(lastRejected.timestamp).toLocaleString()} 被拒绝过申请，请等待 24 小时后再试。`,
+          content: `你在 ${new Date(lastRejected.timestamp).toLocaleString()} 被拒绝过申请，请等待 24 小时后再试 `,
           flags: 64
         });
         return;
@@ -140,7 +140,7 @@ module.exports = async (interaction, client) => {
       });
     }
 
-    await interaction.reply({ content: '申请已提交，等待管理员审核。', flags: 64 });
+    await interaction.reply({ content: '申请已提交，等待管理员审核 ', flags: 64 });
   } catch (err) {
     // 持久化失败不影响主流程，仅记录日志
     console.error('保存申请信息失败:', err);

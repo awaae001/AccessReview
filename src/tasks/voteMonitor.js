@@ -17,7 +17,7 @@ async function checkPendingVotes(client) {
                     await sendLog({
                         module: '投票监控',
                         action: '自动批准',
-                        info: `投票 ${voteId} 因等待期结束被自动批准。`
+                        info: `投票 ${voteId} 因等待期结束被自动批准 `
                     }, 'info');
                 } catch (error) {
                     console.error(`[voteMonitor] Error finalizing vote ${voteId}:`, error);

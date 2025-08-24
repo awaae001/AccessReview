@@ -5,8 +5,8 @@ const path = require('path');
 const configPath = path.join(__dirname, '..', '..', 'data', 'new_ApplyConfig.json');
 
 /**
- * 读取并解析配置文件。
- * @returns {object | null} 解析后的配置对象，如果失败则返回 null。
+ * 读取并解析配置文件 
+ * @returns {object | null} 解析后的配置对象，如果失败则返回 null 
  */
 function readConfig() {
     try {
@@ -30,9 +30,9 @@ function readConfig() {
 }
 
 /**
- * 根据服务器 ID 获取其所有申请配置。
- * @param {string} guildId 服务器 ID。
- * @returns {object | null} 服务器的配置对象，如果未找到则返回 null。
+ * 根据服务器 ID 获取其所有申请配置 
+ * @param {string} guildId 服务器 ID 
+ * @returns {object | null} 服务器的配置对象，如果未找到则返回 null 
  */
 function getGuildConfig(guildId) {
     const config = readConfig();
@@ -43,10 +43,10 @@ function getGuildConfig(guildId) {
 }
 
 /**
- * 根据服务器 ID 和申请类别 ID 获取特定的申请配置。
- * @param {string} guildId 服务器 ID。
- * @param {string} categoryId 申请类别的 ID。
- * @returns {object | null} 具体的申请类别配置，如果未找到则返回 null。
+ * 根据服务器 ID 和申请类别 ID 获取特定的申请配置 
+ * @param {string} guildId 服务器 ID 
+ * @param {string} categoryId 申请类别的 ID 
+ * @returns {object | null} 具体的申请类别配置，如果未找到则返回 null 
  */
 function getCategoryConfig(guildId, categoryId) {
     const guildConfig = getGuildConfig(guildId);

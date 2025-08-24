@@ -12,7 +12,7 @@ async function handleVote(interaction) {
   const voteData = allVotes[voteId];
 
   if (!voteData || !['pending', 'pending_admin'].includes(voteData.status)) {
-    return interaction.editReply({ content: '这个投票已结束或不存在。' });
+    return interaction.editReply({ content: '这个投票已结束或不存在 ' });
   }
 
   const { config } = voteData;
@@ -21,12 +21,12 @@ async function handleVote(interaction) {
   // Permission check
   const hasPermission = Object.values(allow_vote_role).some(roleId => voter.roles.cache.has(String(roleId)));
   if (!hasPermission) {
-    return interaction.editReply({ content: '你没有权限参与本次投票。' });
+    return interaction.editReply({ content: '你没有权限参与本次投票 ' });
   }
 
   // Applicant cannot vote for themselves
   if (voterId === voteData.requesterId) {
-    return interaction.editReply({ content: '申请人不能为自己投票。' });
+    return interaction.editReply({ content: '申请人不能为自己投票 ' });
   }
 
   const { votes } = voteData;
@@ -36,7 +36,7 @@ async function handleVote(interaction) {
   if (votes[action].includes(voterId)) {
     votes[action] = votes[action].filter(id => id !== voterId);
     await voteManager.saveVotes(allVotes);
-    await interaction.editReply({ content: '您已撤销投票。' });
+    await interaction.editReply({ content: '您已撤销投票 ' });
     return voteManager.checkVoteStatus(interaction.client, voteId);
   }
 
@@ -44,7 +44,7 @@ async function handleVote(interaction) {
   votes[action].push(voterId);
 
   await voteManager.saveVotes(allVotes);
-  await interaction.editReply({ content: `您已成功投出 **${action === 'approve' ? '同意' : '拒绝'}** 票。` });
+  await interaction.editReply({ content: `您已成功投出 **${action === 'approve' ? '同意' : '拒绝'}** 票 ` });
   await voteManager.checkVoteStatus(interaction.client, voteId);
 }
 

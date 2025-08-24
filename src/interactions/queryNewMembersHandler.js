@@ -9,7 +9,7 @@ async function handleQueryNewMembers(interaction) {
     const isAdmin = hasPermission(member, requestUserId);
 
     if (!isAdmin) {
-        await interaction.reply({ content: '您没有权限使用此命令。', ephemeral: true });
+        await interaction.reply({ content: '您没有权限使用此命令 ', ephemeral: true });
         return;
     }
 
@@ -25,7 +25,7 @@ async function handleQueryNewMembers(interaction) {
 
         const serverConfig = serverConfigs[serverId];
         if (!serverConfig) {
-            await interaction.editReply({ content: `未找到服务器ID: ${serverId} 的配置。` });
+            await interaction.editReply({ content: `未找到服务器ID: ${serverId} 的配置 ` });
             return;
         }
 
@@ -48,7 +48,7 @@ async function handleQueryNewMembers(interaction) {
                         { name: '获得身份组', value: dateData.role_join.toString(), inline: true }
                     );
             } else {
-                embed.setDescription(`在 ${date} 未找到数据。`);
+                embed.setDescription(`在 ${date} 未找到数据 `);
             }
         } else {
             let totalJoin = 0;
@@ -76,7 +76,7 @@ async function handleQueryNewMembers(interaction) {
 
     } catch (error) {
         console.error('[queryNewMembersHandler] Error:', error);
-        await interaction.editReply({ content: '处理您的请求时发生错误。' });
+        await interaction.editReply({ content: '处理您的请求时发生错误 ' });
     }
 }
 

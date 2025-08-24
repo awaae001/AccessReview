@@ -41,7 +41,7 @@ module.exports = {
 
     if (!hasPermission(member, userId)) {
       console.log(`[create_apply_embed/execute] 用户 ${userId} 权限不足，拒绝执行`);
-      await interaction.reply({ content: '你没有权限使用该命令。', flags: 64 });
+      await interaction.reply({ content: '你没有权限使用该命令 ', flags: 64 });
       return;
     }
     console.log(`[create_apply_embed/execute] 用户 ${userId} 权限校验通过`);
@@ -57,7 +57,7 @@ module.exports = {
       roleConfigs = JSON.parse(rawData);
     } catch (error) {
       console.error(`[create_apply_embed/execute] 读取或解析配置文件失败:`, error);
-      await interaction.reply({ content: '无法读取或解析身份组配置文件。', flags: 64 });
+      await interaction.reply({ content: '无法读取或解析身份组配置文件 ', flags: 64 });
       return;
     }
 
@@ -65,7 +65,7 @@ module.exports = {
     const configKey = Object.keys(roleConfigs).find(key => roleConfigs[key].name === actionName);
     if (!configKey) {
       console.log(`[create_apply_embed/execute] 未找到名称为 "${actionName}" 的配置`);
-      await interaction.reply({ content: `未找到名称为 "${actionName}" 的配置。`, flags: 64 });
+      await interaction.reply({ content: `未找到名称为 "${actionName}" 的配置 `, flags: 64 });
       return;
     }
 

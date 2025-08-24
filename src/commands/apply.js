@@ -27,7 +27,7 @@ module.exports = {
 
     if (!hasPermission(member, userId)) {
       console.log(`[apply/execute] 用户 ${userId} 权限不足，拒绝执行`);
-      await interaction.reply({ content: '你没有权限使用该命令。', flags: 64 });
+      await interaction.reply({ content: '你没有权限使用该命令 ', flags: 64 });
       return;
     }
     console.log(`[apply/execute] 用户 ${userId} 权限校验通过`);
