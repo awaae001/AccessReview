@@ -22,6 +22,7 @@ Thumbs.db
 *.swp
 *.swo
 *.tmp
+pnpm-lock.yaml
 
 # VSCode
 .vscode/

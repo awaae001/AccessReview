@@ -64,35 +64,51 @@ try {
       
       // 为每个服务器注册命令
       for (const serverId of serverIds) {
-        try {
-          // 首先删除该服务器的所有现有命令
-          console.log(`正在删除服务器 ${serverId} 的所有命令...`);
-          await rest.put(
-            Routes.applicationGuildCommands(CLIENT_ID, serverId),
-            { body: [] }
-          );
-          console.log(`服务器 ${serverId} 的命令已清空`);
-          
-          // 然后注册新命令
-          console.log(`正在为服务器 ${serverId} 注册命令...`);
-          await rest.put(
-            Routes.applicationGuildCommands(CLIENT_ID, serverId),
-            { body: commands }
-          );
-          console.log(`服务器 ${serverId} 的命令注册成功！`);
-          
-          await sendLog({
-            module: 'Main',
-            action: 'Command Registration',
-            info: `已为服务器 ${serverId} 注册 ${commands.length} 个命令`
-          });
-        } catch (guildErr) {
-          console.error(`服务器 ${serverId} 命令注册失败:`, guildErr);
-          await sendLog({
-            module: 'Main',
-            action: 'Command Registration Error',
-            error: `服务器 ${serverId} 命令注册失败: ${guildErr.message}`
-          });
+        let retries = 3;
+        let success = false;
+        
+        while (retries > 0 && !success) {
+          try {
+            // 首先删除该服务器的所有现有命令
+            console.log(`正在删除服务器 ${serverId} 的所有命令... (剩余重试: ${retries})`);
+            await rest.put(
+              Routes.applicationGuildCommands(CLIENT_ID, serverId),
+              { body: [] }
+            );
+            console.log(`服务器 ${serverId} 的命令已清空`);
+            
+            // 稍等片刻避免API限制
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 然后注册新命令
+            console.log(`正在为服务器 ${serverId} 注册命令...`);
+            await rest.put(
+              Routes.applicationGuildCommands(CLIENT_ID, serverId),
+              { body: commands }
+            );
+            console.log(`服务器 ${serverId} 的命令注册成功！`);
+            
+            await sendLog({
+              module: 'Main',
+              action: 'Command Registration',
+              info: `已为服务器 ${serverId} 注册 ${commands.length} 个命令`
+            });
+            success = true;
+          } catch (guildErr) {
+            retries--;
+            console.error(`服务器 ${serverId} 命令注册失败 (剩余重试: ${retries}):`, guildErr.message);
+            
+            if (retries === 0) {
+              await sendLog({
+                module: 'Main',
+                action: 'Command Registration Error',
+                error: `服务器 ${serverId} 命令注册失败: ${guildErr.message}`
+              });
+            } else {
+              // 等待后重试
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+          }
         }
       }
       
@@ -182,4 +198,7 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 // 登录
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.BOT_TOKEN).catch(error => {
+  console.error('Bot 登录失败:', error);
+  process.exit(1);
+});
