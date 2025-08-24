@@ -4,6 +4,8 @@ const { Client, GatewayIntentBits, Partials, Collection, Events, InteractionType
 const { scanTask } = require('./src/tasks/scanner');
 const kickManager = require('./src/tasks/kickManager');
 const newMemberScanner = require('./src/tasks/newMemberScanner');
+const voteMonitor = require('./src/tasks/voteMonitor');
+const cron = require('node-cron');
 const { sendLog } = require('./src/utils/logger');
 const { enqueueOperation } = require('./src/fileLock');
 
@@ -113,6 +115,14 @@ try {
   // scanTask();
   // kickManager.initialize();
   newMemberScanner.initialize();
+
+  // Schedule the vote monitor task
+  if (cron.validate(voteMonitor.schedule)) {
+    cron.schedule(voteMonitor.schedule, () => voteMonitor.execute(client));
+    console.log(`Task '${voteMonitor.name}' scheduled.`);
+  } else {
+    console.error(`Invalid cron schedule for task '${voteMonitor.name}': ${voteMonitor.schedule}`);
+  }
 });
 
 const rejectModalHandler = require('./src/interactions/rejectModal');

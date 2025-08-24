@@ -101,11 +101,12 @@ async function createVote(interaction, config) {
 }
 
 // Called from voteHandler.js to check the status after a vote
+// Called from voteHandler.js to check the status after a vote
 async function checkVoteStatus(client, voteId) {
   const allVotes = await getVotes();
   const voteData = allVotes[voteId];
 
-  if (!voteData || voteData.status !== 'pending') {
+  if (!voteData || !['pending', 'pending_admin'].includes(voteData.status)) {
     return;
   }
 
@@ -149,17 +150,27 @@ async function checkVoteStatus(client, voteId) {
   }
 
   // Check if conditions are met
-  const isApproved = (ratio_allow.admin > 0 && adminApprovals >= ratio_allow.admin) ||
-                     (ratio_allow.user > 0 && userApprovals >= ratio_allow.user);
+  const isApprovedByAdmin = ratio_allow.admin > 0 && adminApprovals >= ratio_allow.admin;
+  const isApprovedByUser = ratio_allow.user > 0 && userApprovals >= ratio_allow.user;
+
   const isRejected = (ratio_reject.admin > 0 && adminRejections >= ratio_reject.admin) ||
                      (ratio_reject.user > 0 && userRejections >= ratio_reject.user);
 
-  if (isApproved) {
-    return finalizeVote(client, voteId, 'approved');
-  }
+  // If an admin rejects at any time, the vote is immediately rejected.
   if (isRejected) {
     return finalizeVote(client, voteId, 'rejected');
   }
+
+  // If an admin approves, the vote is immediately approved.
+  if (isApprovedByAdmin) {
+    return finalizeVote(client, voteId, 'approved');
+  }
+
+  // If the vote is approved by users and is currently pending, start the admin review period.
+  if (isApprovedByUser && voteData.status === 'pending') {
+    return startPendingPeriod(client, voteId);
+  }
+
 
   // If the vote is not over, update the message
   const channel = await guild.channels.fetch(channelId);
@@ -178,18 +189,65 @@ async function checkVoteStatus(client, voteId) {
   await message.edit({ embeds: [updatedEmbed] });
 }
 
+// Called when user vote passes, waiting for admin action
+async function startPendingPeriod(client, voteId) {
+    const allVotes = await getVotes();
+    const voteData = allVotes[voteId];
+
+    if (!voteData || voteData.status !== 'pending') {
+        return;
+    }
+
+    const now = new Date();
+    const pendingUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    voteData.status = 'pending_admin';
+    voteData.pendingUntil = pendingUntil.toISOString();
+    await saveVotes(allVotes);
+
+    const { channelId, messageId, config, requesterId, targetRoleId } = voteData;
+    const guild = await client.guilds.fetch(config.guild_id);
+    const channel = await guild.channels.fetch(channelId);
+    const message = await channel.messages.fetch(messageId);
+    const originalEmbed = message.embeds[0];
+
+    const pendingEmbed = new EmbedBuilder(originalEmbed.toJSON())
+        .setColor(0xf1c40f) // Yellow for pending
+        .setFields(
+            originalEmbed.fields[0], // requester
+            originalEmbed.fields[1], // role
+            { name: '当前状态', value: `⏳ 等待管理员确认`, inline: false },
+            { name: '详情', value: `用户投票已达标。如果在 <t:${Math.floor(pendingUntil.getTime() / 1000)}:R> 内没有管理员拒绝，申请将自动通过。`, inline: false },
+            originalEmbed.fields[3], // approve counts
+            originalEmbed.fields[4]  // reject counts
+        );
+
+    await message.edit({ embeds: [pendingEmbed] });
+
+    console.log(`[voteManager/startPendingPeriod] 投票 ${voteId} 已进入管理员等待期。`);
+
+    // Send log
+    await sendLog({
+        module: '投票系统',
+        action: '进入管理员等待期',
+        info: `用户 <@${requesterId}> 的申请 <@&${targetRoleId}> 用户投票已达标，进入24小时等待期。\n[点击查看投票](https://discord.com/channels/${config.guild_id}/${channelId}/${messageId})\n投票ID: ${voteId}`
+    }, 'info');
+}
+
 // Called by checkVoteStatus to finalize the vote
 async function finalizeVote(client, voteId, result) {
   const allVotes = await getVotes();
   const voteData = allVotes[voteId];
 
-  if (!voteData || voteData.status !== 'pending') {
+  if (!voteData || !['pending', 'pending_admin'].includes(voteData.status)) {
     return;
   }
 
   voteData.status = result;
+  if (voteData.pendingUntil) {
+    delete voteData.pendingUntil;
+  }
   await saveVotes(allVotes);
-
   const { requesterId, targetRoleId, channelId, messageId, config } = voteData;
   const guild = await client.guilds.fetch(config.guild_id);
   if (!guild) {
@@ -250,5 +308,6 @@ module.exports = {
   getVotes,
   saveVotes,
   checkVoteStatus,
-  finalizeVote
+  finalizeVote,
+  startPendingPeriod
 };

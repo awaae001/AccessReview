@@ -11,7 +11,7 @@ async function handleVote(interaction) {
   const allVotes = await voteManager.getVotes();
   const voteData = allVotes[voteId];
 
-  if (!voteData || voteData.status !== 'pending') {
+  if (!voteData || !['pending', 'pending_admin'].includes(voteData.status)) {
     return interaction.editReply({ content: '这个投票已结束或不存在。' });
   }
 
