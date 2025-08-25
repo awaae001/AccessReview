@@ -59,6 +59,7 @@ module.exports = {
             .setPlaceholder('请详细介绍您自己，以及您申请该身份组的理由 ')
             .setStyle(TextInputStyle.Paragraph) // Paragraph for long text
             .setMinLength(50)
+            .setMaxLength(1000)
             .setRequired(true);
 
         const firstActionRow = new ActionRowBuilder().addComponents(selfIntroductionInput);

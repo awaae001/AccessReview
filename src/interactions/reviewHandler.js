@@ -5,7 +5,7 @@ const {
     removeActiveApply, 
     addApplyToHistory 
 } = require('../utils/persistence');
-const { PermissionsBitField, EmbedBuilder } = require('discord.js');
+const { PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
     name: 'review',
@@ -50,10 +50,24 @@ module.exports = {
                 const welcomeEmbed = new EmbedBuilder()
                     .setTitle(`欢迎 ${applicant.user.username}！`)
                     .setDescription(`您的 **${categoryConfig.category_name || categoryConfig.name}** 申请预审核已通过 `)
-                    .addFields({ name: '您的自我介绍', value: pendingApply.selfIntroduction })
+                    .addFields({ name: '您的自我介绍', value: pendingApply.selfIntroduction.length > 1024 ? pendingApply.selfIntroduction.substring(0, 1021) + '...' : pendingApply.selfIntroduction })
                     .setColor(0x00FF00) // Green
                     .setTimestamp();
-                await channel.send({ content: `欢迎 <@${userId}>！`, embeds: [welcomeEmbed] });
+
+                // 创建"结束"按钮
+                const finishButton = new ButtonBuilder()
+                    .setCustomId(`finish:${guildId}:${categoryId}:${userId}`)
+                    .setLabel('结束')
+                    .setStyle(ButtonStyle.Secondary);
+
+                const actionRow = new ActionRowBuilder()
+                    .addComponents(finishButton);
+
+                await channel.send({ 
+                    content: `欢迎 <@${userId}>！`, 
+                    embeds: [welcomeEmbed],
+                    components: [actionRow]
+                });
 
                 updateActiveApply(guildId, userId, categoryId, { 
                     status: 'approved', 

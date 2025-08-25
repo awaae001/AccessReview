@@ -79,6 +79,40 @@ function registerEventListeners(client) {
             const reviewHandler = require('../src/interactions/reviewHandler');
             await reviewHandler.execute(interaction);
             break;
+          case 'finish':
+            const finishApplyHandler = require('../src/interactions/finish/finishApplyHandler');
+            await finishApplyHandler.execute(interaction);
+            break;
+          case 'finish_confirm':
+            const finishConfirmHandler = require('../src/interactions/finish/finishConfirmHandler');
+            await finishConfirmHandler.execute(interaction);
+            break;
+          case 'finish_cancel':
+            const finishCancelHandler = require('../src/interactions/finish/finishCancelHandler');
+            await finishCancelHandler.execute(interaction);
+            break;
+          case 'admin_approve':
+            const adminApproveHandler = require('../src/interactions/finish/adminApproveHandler');
+            await adminApproveHandler.execute(interaction);
+            break;
+          case 'admin_reject':
+            const adminRejectHandler = require('../src/interactions/finish/adminRejectHandler');
+            await adminRejectHandler.execute(interaction);
+            break;
+          case 'admin_role':
+            const adminRoleHandler = require('../src/interactions/finish/adminRoleHandler');
+            await adminRoleHandler.execute(interaction);
+            break;
+        }
+      }
+      else if (interaction.isStringSelectMenu()) {
+        const [customIdPrefix] = interaction.customId.split(':');
+        
+        switch (customIdPrefix) {
+          case 'select_extra_role':
+            const selectExtraRoleHandler = require('../src/interactions/finish/selectExtraRoleHandler');
+            await selectExtraRoleHandler.execute(interaction);
+            break;
         }
       }
     } catch (error) {
