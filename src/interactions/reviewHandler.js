@@ -25,12 +25,12 @@ module.exports = {
                 return await interaction.followUp({ content: '未找到待处理的申请，或该申请已被处理 ', flags: 64 });
             }
 
+            const applicant = await guild.members.fetch(userId);
             const originalMessage = interaction.message;
             const originalEmbed = originalMessage.embeds[0];
             
             if (action === 'approve') {
                 const categoryConfig = getCategoryConfig(guildId, categoryId);
-                const applicant = await guild.members.fetch(userId);
 
                 const parentCategory = await guild.channels.fetch(categoryId);
                 const permissionOverwrites = Array.from(parentCategory.permissionOverwrites.cache.values());
@@ -75,6 +75,16 @@ module.exports = {
                     status: 'rejected',
                     reviewerId: reviewer.id
                 });
+
+                try {
+                    const rejectionEmbed = new EmbedBuilder()
+                        .setTitle('🫡 感谢您申请社区管理职位')
+                        .setDescription('很抱歉，您的申请未能通过本次预审。感谢您对管理组工作的支持，祝您生活愉快')
+                        .setColor(0xFFFF00); // Yellow
+                    await applicant.send({ embeds: [rejectionEmbed] });
+                } catch (dmError) {
+                    console.error(`无法向用户 ${userId} 发送私信:`, dmError);
+                }
                 
                 const rejectedEmbed = EmbedBuilder.from(originalEmbed)
                     .setColor(0xFF0000) // Red
