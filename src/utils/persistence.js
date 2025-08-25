@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-// --- Paths ---
+//  - Paths  -
 const activeApplyFilePath = path.join(__dirname, '..', '..', 'data', 'active_applies.json');
 function getUserApplyHistoryFilePath(guildId) {
     return path.join(__dirname, '..', '..', 'data', `apply_${guildId}.json`);
 }
 
-// --- Functions for active_applies.json (New System: Pending & Approved) ---
+//  - Functions for active_applies.json (New System: Pending & Approved)  -
 
 function loadActiveApplies() {
     try {
@@ -85,7 +85,7 @@ function removeActiveApplyByChannelId(channelId) {
     }
 }
 
-// --- Functions for apply_{guildId}.json (History & Old System) ---
+//  - Functions for apply_{guildId}.json (History & Old System)  -
 
 function loadUserApplyHistory(guildId) {
     const filePath = getUserApplyHistoryFilePath(guildId);

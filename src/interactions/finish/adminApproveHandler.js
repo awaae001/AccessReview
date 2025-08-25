@@ -1,8 +1,8 @@
 const { getCategoryConfig } = require('../../utils/configManager');
-const { 
-    findActiveApply, 
-    removeActiveApply, 
-    addApplyToHistory 
+const {
+    findActiveApply,
+    removeActiveApply,
+    addApplyToHistory
 } = require('../../utils/persistence');
 const { EmbedBuilder } = require('discord.js');
 const { hasPermission } = require('../../utils/permissionChecker');
@@ -36,7 +36,7 @@ module.exports = {
 
             // 批准申请，授予基础身份组
             const giveRoleId = categoryConfig?.role_config?.give_role_id;
-            
+
             if (giveRoleId) {
                 await applicant.roles.add(giveRoleId);
             }
@@ -58,14 +58,27 @@ module.exports = {
                 SendMessages: false
             });
 
+            // 移除初始消息的按钮
+            if (pendingApply.messageId) {
+                try {
+                    const originalMessage = await channel.messages.fetch(pendingApply.messageId);
+                    await originalMessage.edit({ components: [] });
+                } catch (msgError) {
+                    console.error(`[adminApproveHandler] Could not edit original message ${pendingApply.messageId}:`, msgError);
+                }
+            }
+
             const approvedEmbed = new EmbedBuilder()
                 .setTitle('申请已批准')
                 .setDescription(`<@${userId}> 的申请已被 <@${admin.id}> 批准通过`)
                 .setColor(0x00FF00) // Green
                 .setTimestamp();
 
-            await interaction.editReply({ embeds: [approvedEmbed], components: [] });
+            // First, edit the original ephemeral reply to confirm the action is done.
+            await interaction.editReply({ content: '操作已成功 ', embeds: [], components: [] });
 
+            // Then, send a new public message to the channel.
+            await interaction.channel.send({ embeds: [approvedEmbed] });
             // 向申请人发送私信
             try {
                 const dmEmbed = new EmbedBuilder()

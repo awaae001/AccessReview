@@ -54,25 +54,32 @@ module.exports = {
                     .setColor(0x00FF00) // Green
                     .setTimestamp();
 
+                const finishEmbed = new EmbedBuilder()
+                    .setTitle('手动结束')
+                    .setDescription('你可以通过这个按钮结束你的申请')
+                    .setColor(0xFFFF00); // Yellow
+
                 // 创建"结束"按钮
                 const finishButton = new ButtonBuilder()
                     .setCustomId(`finish:${guildId}:${categoryId}:${userId}`)
                     .setLabel('结束')
-                    .setStyle(ButtonStyle.Secondary);
+                    .setEmoji('🚪')
+                    .setStyle(ButtonStyle.Success);
 
                 const actionRow = new ActionRowBuilder()
                     .addComponents(finishButton);
 
-                await channel.send({ 
-                    content: `欢迎 <@${userId}>！`, 
-                    embeds: [welcomeEmbed],
+                const welcomeMessage = await channel.send({
+                    content: `欢迎 <@${userId}>！`,
+                    embeds: [welcomeEmbed, finishEmbed],
                     components: [actionRow]
                 });
 
-                updateActiveApply(guildId, userId, categoryId, { 
-                    status: 'approved', 
-                    channelId: channel.id, 
-                    reviewerId: reviewer.id 
+                updateActiveApply(guildId, userId, categoryId, {
+                    status: 'approved',
+                    channelId: channel.id,
+                    reviewerId: reviewer.id,
+                    messageId: welcomeMessage.id
                 });
 
                 const approvedEmbed = EmbedBuilder.from(originalEmbed)

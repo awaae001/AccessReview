@@ -141,9 +141,18 @@ module.exports = {
                 }
             }
 
+            // 5. 移除初始消息的按钮
+            if (applyInfo && applyInfo.messageId) {
+                try {
+                    const originalMessage = await channel.messages.fetch(applyInfo.messageId);
+                    await originalMessage.edit({ components: [] });
+                } catch (msgError) {
+                    console.error(`[close_apply_channel] Could not edit original message ${applyInfo.messageId}:`, msgError);
+                }
+            }
+
             // 6. 完成后更新回复
             await interaction.editReply({ content: replyMessage });
-
         } catch (error) {
             console.error('[close_apply_channel] 处理申请时出错:', error);
             if (interaction.deferred || interaction.replied) {

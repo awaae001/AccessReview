@@ -55,14 +55,28 @@ module.exports = {
                 SendMessages: false
             });
 
+            // 移除初始消息的按钮
+            if (pendingApply.messageId) {
+                try {
+                    const originalMessage = await channel.messages.fetch(pendingApply.messageId);
+                    await originalMessage.edit({ components: [] });
+                } catch (msgError) {
+                    console.error(`[adminRejectHandler] Could not edit original message ${pendingApply.messageId}:`, msgError);
+                }
+            }
+
             const rejectedEmbed = new EmbedBuilder()
                 .setTitle('申请已拒绝')
                 .setDescription(`<@${userId}> 的申请已被 <@${admin.id}> 拒绝`)
                 .setColor(0xFF0000) // Red
                 .setTimestamp();
 
-            await interaction.editReply({ embeds: [rejectedEmbed], components: [] });
+            // First, edit the original ephemeral reply to confirm the action is done.
+            await interaction.editReply({ content: '操作已成功 ', embeds: [], components: [] });
 
+            // Then, send a new public message to the channel.
+            await interaction.channel.send({ embeds: [rejectedEmbed] });
+            
             // 向申请人发送私信
             try {
                 const dmEmbed = new EmbedBuilder()

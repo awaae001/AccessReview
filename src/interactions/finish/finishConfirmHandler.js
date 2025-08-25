@@ -1,9 +1,9 @@
 const { getCategoryConfig } = require('../../utils/configManager');
-const { 
-    findActiveApply, 
-    updateActiveApply, 
-    removeActiveApply, 
-    addApplyToHistory 
+const {
+    findActiveApply,
+    updateActiveApply,
+    removeActiveApply,
+    addApplyToHistory
 } = require('../../utils/persistence');
 const { EmbedBuilder } = require('discord.js');
 const { hasPermission } = require('../../utils/permissionChecker');
@@ -57,6 +57,16 @@ module.exports = {
                 SendMessages: false
             });
 
+            // 移除初始消息的按钮
+            if (pendingApply.messageId) {
+                try {
+                    const originalMessage = await channel.messages.fetch(pendingApply.messageId);
+                    await originalMessage.edit({ components: [] });
+                } catch (msgError) {
+                    console.error(`[finishConfirmHandler] Could not edit original message ${pendingApply.messageId}:`, msgError);
+                }
+            }
+
             // 发送确认消息
             const exitEmbed = new EmbedBuilder()
                 .setTitle('申请已结束')
@@ -64,7 +74,11 @@ module.exports = {
                 .setColor(0xFF6600) // Orange
                 .setTimestamp();
 
-            await interaction.editReply({ embeds: [exitEmbed], components: [] });
+            // First, edit the original ephemeral reply to confirm the action is done.
+            await interaction.editReply({ content: '操作已完成 ', embeds: [], components: [] });
+
+            // Then, send a new public message to the channel.
+            await interaction.channel.send({ embeds: [exitEmbed] });
 
             // 向申请人发送私信
             try {
