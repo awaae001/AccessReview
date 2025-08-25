@@ -69,7 +69,7 @@ module.exports = {
     let files = [];
 
     if (image) {
-      const imageDir = path.join(__dirname, '..', '..', 'image');
+      const imageDir = path.join(__dirname, '..', '..', 'data','image');
       if (!fs.existsSync(imageDir)) {
         fs.mkdirSync(imageDir, { recursive: true });
       }
