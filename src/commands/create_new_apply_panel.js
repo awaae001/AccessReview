@@ -5,21 +5,36 @@ const { hasPermission } = require('../utils/permissionChecker');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('create_new_apply_panel')
-        .setDescription('创建一个新的申请面板')
+        .setDescription('Create a new application panel')
+        .setNameLocalizations({
+            'zh-CN': '创建新申请面板'
+        })
+        .setDescriptionLocalizations({
+            'zh-CN': '创建一个新的申请面板'
+        })
         .addStringOption(option =>
             option.setName('category_id')
-                .setDescription('请选择一个申请类别')
+                .setDescription('Select an application category')
+                .setDescriptionLocalizations({
+                    'zh-CN': '请选择一个申请类别'
+                })
                 .setRequired(true)
                 .setAutocomplete(true) // 启用自动完成
         )
         .addStringOption(option =>
             option.setName('title')
-                .setDescription('自定义标题')
+                .setDescription('Custom title')
+                .setDescriptionLocalizations({
+                    'zh-CN': '自定义标题'
+                })
                 .setRequired(false)
         )
         .addStringOption(option =>
             option.setName('context')
-                .setDescription('自定义描述内容')
+                .setDescription('Custom description content')
+                .setDescriptionLocalizations({
+                    'zh-CN': '自定义描述内容'
+                })
                 .setRequired(false)
         ),
     async autocomplete(interaction) {
@@ -29,8 +44,7 @@ module.exports = {
         if (!guildConfig || !guildConfig.data) {
             await interaction.respond([]);
             return;
-        return;
-    }
+        }
 
     const categories = Object.values(guildConfig.data);
     const filteredCategories = categories.filter(category => category && (category.category_name || category.name) && category.id);

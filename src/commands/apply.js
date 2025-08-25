@@ -3,15 +3,27 @@ const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRow
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('apply')
-    .setDescription('申请加入服务器')
+    .setDescription('Apply to join the server')
+    .setNameLocalizations({
+      'zh-CN': '申请'
+    })
+    .setDescriptionLocalizations({
+      'zh-CN': '申请加入服务器'
+    })
     .addStringOption(option =>
       option.setName('admin_channel_id')
-        .setDescription('管理员频道ID')
+        .setDescription('Admin channel ID')
+        .setDescriptionLocalizations({
+          'zh-CN': '管理员频道ID'
+        })
         .setRequired(true)
     )
     .addStringOption(option =>
       option.setName('target_role_id')
-        .setDescription('要分配的身份组ID')
+        .setDescription('Target role ID to assign')
+        .setDescriptionLocalizations({
+          'zh-CN': '要分配的身份组ID'
+        })
         .setRequired(true)
     ),
   async execute(interaction, client) {

@@ -5,10 +5,19 @@ const { queryUserData } = require('../utils/dataQuery');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('query')
-        .setDescription('查询用户在所有库中的数据')
+        .setDescription('Query user data across all databases')
+        .setNameLocalizations({
+            'zh-CN': '查询'
+        })
+        .setDescriptionLocalizations({
+            'zh-CN': '查询用户在所有库中的数据'
+        })
         .addStringOption(option =>
             option.setName('user_id')
-                .setDescription('要查询的用户ID (管理员专用)')
+                .setDescription('User ID to query (Admin only)')
+                .setDescriptionLocalizations({
+                    'zh-CN': '要查询的用户ID (管理员专用)'
+                })
                 .setRequired(false)),
     async execute(interaction, client) {
         const member = interaction.member;

@@ -5,7 +5,13 @@ const { scanTask } = require('../tasks/scanner')
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('refresh_db')
-        .setDescription('刷新数据库'),
+        .setDescription('Refresh database')
+        .setNameLocalizations({
+            'zh-CN': '刷新数据库'
+        })
+        .setDescriptionLocalizations({
+            'zh-CN': '刷新数据库'
+        }),
     async execute(interaction, client) {
         const member = interaction.member;
         const userId = interaction.user.id;

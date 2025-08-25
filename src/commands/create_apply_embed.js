@@ -21,10 +21,19 @@ try {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('creat_apply_ed')
-    .setDescription('创建一个嵌入式消息，用于身份组申请')
+    .setDescription('Create an embedded message for role application')
+    .setNameLocalizations({
+      'zh-CN': '创建申请嵌入'
+    })
+    .setDescriptionLocalizations({
+      'zh-CN': '创建一个嵌入式消息，用于身份组申请'
+    })
     .addStringOption(option =>
       option.setName('action_name')
-        .setDescription('操作名称，对应配置文件中的 name 字段')
+        .setDescription('Action name corresponding to the name field in config file')
+        .setDescriptionLocalizations({
+          'zh-CN': '操作名称，对应配置文件中的 name 字段'
+        })
         .setRequired(true)
         .addChoices(...roleChoices)
     ),
