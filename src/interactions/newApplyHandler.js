@@ -18,7 +18,7 @@ module.exports = {
         const isRejected = allApplies.some(apply => apply.status === 'rejected');
         if (isRejected) {
             return interaction.reply({
-                content: '您的申请已被拒绝，无法再次提交 \n如有疑问，请联系管理员 ',
+                content: '⛔ 您的申请已被拒绝（或者你手动退出），无法再次提交 \n如有疑问，请联系管理员 ',
                 flags: 64, // Ephemeral
             });
         }
@@ -26,7 +26,7 @@ module.exports = {
         const hasPendingOrApproved = allApplies.some(apply => apply.status === 'pending' || apply.status === 'approved');
         if (hasPendingOrApproved) {
             return interaction.reply({
-                content: '您已经有一个正在进行中或已批准的申请，请勿重复提交 ',
+                content: '⚠️ 您已经有一个正在进行中或已批准的申请，请勿重复提交 ',
                 flags: 64, // Ephemeral
             });
         }
@@ -43,7 +43,7 @@ module.exports = {
         // 3. Perform prerequisite checks
         if (!member.roles.cache.has(mustHoldRoleId)) {
             return interaction.reply({
-                content: `抱歉，您需要持有特定的身份组才能申请 `,
+                content: `🚫 抱歉，您需要持有特定的身份组(<@&${mustHoldRoleId}>)才能申请 `,
                 flags: 64,
             });
         }
