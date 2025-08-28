@@ -14,6 +14,7 @@ class RegistryClient {
         this.isConnected = false;
         this.connectionStream = null;
         this.cooldownHandler = new CooldownHandler();
+        this.registeredServices = []; // 存储注册的服务列表
         
         // 重连配置
         this.reconnectAttempts = 0;
@@ -68,6 +69,9 @@ class RegistryClient {
             if (!this.client) {
                 return reject(new Error('[Grpc_Registry]gRPC 客户端未初始化'));
             }
+
+            // 保存注册的服务列表
+            this.registeredServices = services;
 
             const request = {
                 api_key: this.config.getToken(),
@@ -128,7 +132,7 @@ class RegistryClient {
                 const registerMessage = {
                     register: {
                         api_key: this.config.getToken(),
-                        services: [], // 根据需要添加服务列表
+                        services: this.registeredServices, // 使用保存的服务列表
                         connection_id: this.generateConnectionId()
                     }
                 };
@@ -180,11 +184,12 @@ class RegistryClient {
             // 根据 method_path 路由到对应的服务处理器
             if (request.method_path.startsWith('/accessreview.cooldown/')) {
                 responseData = await this.cooldownHandler.handleRequest(request.method_path, request.payload);
+                // responseData 已经是 protobuf 序列化的 Buffer
             } else {
                 // 未知服务
                 statusCode = 404;
                 errorMessage = `未知的服务路径: ${request.method_path}`;
-                responseData = { error: errorMessage };
+                responseData = Buffer.from(JSON.stringify({ error: errorMessage }));
             }
 
             const response = {
@@ -192,7 +197,7 @@ class RegistryClient {
                     request_id: request.request_id,
                     status_code: statusCode,
                     headers: {},
-                    payload: Buffer.from(JSON.stringify(responseData)),
+                    payload: responseData,
                     error_message: errorMessage
                 }
             };
