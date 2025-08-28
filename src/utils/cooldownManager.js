@@ -146,15 +146,29 @@ function getTimeRemaining(timestamp, cooldownHours = 24) {
   const cooldownAmount = cooldownHours * 60 * 60 * 1000;
   const expirationTime = timestamp + cooldownAmount;
   
+  console.log(`[getTimeRemaining] 调试信息:`);
+  console.log(`  当前时间: ${now} (${new Date(now).toISOString()})`);
+  console.log(`  冷却开始: ${timestamp} (${new Date(timestamp).toISOString()})`);
+  console.log(`  冷却时长: ${cooldownHours}小时`);
+  console.log(`  到期时间: ${expirationTime} (${new Date(expirationTime).toISOString()})`);
+  
   if (now >= expirationTime) {
+    console.log(`  冷却已过期 - 当前时间 >= 到期时间`);
     return null; // 冷却已过期
   }
   
   const timeLeft = (expirationTime - now) / 1000;
   const hoursLeft = Math.floor(timeLeft / 3600);
   const minutesLeft = Math.floor((timeLeft % 3600) / 60);
+  const totalSecondsLeft = Math.floor(timeLeft);
   
-  return { hoursLeft, minutesLeft };
+  console.log(`  剩余时间: ${hoursLeft}小时 ${minutesLeft}分钟 (总秒数: ${totalSecondsLeft})`);
+  
+  return { 
+    hoursLeft, 
+    minutesLeft, 
+    totalSecondsLeft 
+  };
 }
 
 module.exports = {

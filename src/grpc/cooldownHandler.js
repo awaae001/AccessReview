@@ -48,7 +48,9 @@ class CooldownHandler {
         console.log(`[CooldownHandler]查询用户 ${user_id} 的自动申请冷却状态`);
 
         const cooldowns = await cooldownManager.getAutoApplyCooldowns();
+        console.log(`[CooldownHandler]所有冷却数据:`, cooldowns);
         const userCooldownTimestamp = cooldowns[user_id];
+        console.log(`[CooldownHandler]用户 ${user_id} 的冷却时间戳:`, userCooldownTimestamp);
 
         if (userCooldownTimestamp) {
             const now = Date.now();
@@ -57,6 +59,8 @@ class CooldownHandler {
             const timeRemaining = cooldownManager.getTimeRemaining(userCooldownTimestamp, 24);
 
             if (timeRemaining) {
+                console.log(`[CooldownHandler] 用户 ${user_id} 在冷却中，剩余时间:`, timeRemaining);
+                
                 const response = new cooldownMessages.CooldownResponse();
                 response.setIsOnCooldown(true);
                 response.setCooldownStartTime(userCooldownTimestamp);
@@ -65,8 +69,10 @@ class CooldownHandler {
                 const timeRemainingProto = new cooldownMessages.TimeRemaining();
                 timeRemainingProto.setHoursLeft(timeRemaining.hoursLeft);
                 timeRemainingProto.setMinutesLeft(timeRemaining.minutesLeft);
-                timeRemainingProto.setTotalSecondsLeft(Math.floor((cooldownEndTime - now) / 1000));
+                timeRemainingProto.setTotalSecondsLeft(timeRemaining.totalSecondsLeft || Math.floor((cooldownEndTime - now) / 1000));
                 response.setTimeRemaining(timeRemainingProto);
+                
+                console.log(`[CooldownHandler] 响应设置 - 小时:${timeRemaining.hoursLeft}, 分钟:${timeRemaining.minutesLeft}, 总秒数:${timeRemainingProto.getTotalSecondsLeft()}`);
                 
                 return response.serializeBinary();
             }
@@ -107,7 +113,7 @@ class CooldownHandler {
             const timeRemainingProto = new cooldownMessages.TimeRemaining();
             timeRemainingProto.setHoursLeft(timeRemaining ? timeRemaining.hoursLeft : 0);
             timeRemainingProto.setMinutesLeft(timeRemaining ? timeRemaining.minutesLeft : 0);
-            timeRemainingProto.setTotalSecondsLeft(timeRemaining ? Math.floor((blacklistEndTime - now) / 1000) : 0);
+            timeRemainingProto.setTotalSecondsLeft(timeRemaining ? (timeRemaining.totalSecondsLeft || Math.floor((blacklistEndTime - now) / 1000)) : 0);
             response.setTimeRemaining(timeRemainingProto);
             
             return response.serializeBinary();
@@ -169,7 +175,7 @@ class CooldownHandler {
             const timeRemainingProto = new cooldownMessages.TimeRemaining();
             timeRemainingProto.setHoursLeft(timeRemaining ? timeRemaining.hoursLeft : 0);
             timeRemainingProto.setMinutesLeft(timeRemaining ? timeRemaining.minutesLeft : 0);
-            timeRemainingProto.setTotalSecondsLeft(timeRemaining ? Math.floor((blacklistEndTime - now) / 1000) : 0);
+            timeRemainingProto.setTotalSecondsLeft(timeRemaining ? (timeRemaining.totalSecondsLeft || Math.floor((blacklistEndTime - now) / 1000)) : 0);
             blacklistedUser.setTimeRemaining(timeRemainingProto);
 
             result.push(blacklistedUser);
@@ -218,7 +224,7 @@ class CooldownHandler {
                     
                     autoTimeRemaining.setHoursLeft(timeRemaining.hoursLeft);
                     autoTimeRemaining.setMinutesLeft(timeRemaining.minutesLeft);
-                    autoTimeRemaining.setTotalSecondsLeft(Math.floor((cooldownEndTime - now) / 1000));
+                    autoTimeRemaining.setTotalSecondsLeft(timeRemaining.totalSecondsLeft || Math.floor((cooldownEndTime - now) / 1000));
                 }
             }
 
@@ -247,7 +253,7 @@ class CooldownHandler {
                 
                 blacklistTimeRemaining.setHoursLeft(timeRemaining ? timeRemaining.hoursLeft : 0);
                 blacklistTimeRemaining.setMinutesLeft(timeRemaining ? timeRemaining.minutesLeft : 0);
-                blacklistTimeRemaining.setTotalSecondsLeft(timeRemaining ? Math.floor((blacklistEndTime - now) / 1000) : 0);
+                blacklistTimeRemaining.setTotalSecondsLeft(timeRemaining ? (timeRemaining.totalSecondsLeft || Math.floor((blacklistEndTime - now) / 1000)) : 0);
             }
 
             // 创建用户冷却状态
