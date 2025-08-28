@@ -24,7 +24,7 @@ class Bot {
     registerEventListeners(this.client);
 
     this.client.login(process.env.BOT_TOKEN).catch(error => {
-      console.error('Bot 登录失败:', error);
+      console.error('[Main_setup]Bot 登录失败:', error);
       process.exit(1);
     });
   }

@@ -12,7 +12,7 @@ function loadCommands(client) {
     const command = require(filePath);
     if (command.data && command.execute) {
       client.commands.set(command.data.name, command);
-      console.log(`已加载命令: ${command.data.name}`);
+      console.log(`[Main_setup]已加载命令: ${command.data.name}`);
     } else {
       console.log(`[警告] 文件 ${filePath} 中的命令缺少 "data" 或 "execute" 属性 `);
     }

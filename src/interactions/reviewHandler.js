@@ -5,6 +5,7 @@ const {
     removeActiveApply, 
     addApplyToHistory 
 } = require('../utils/persistence');
+const { addToBlacklist } = require('../utils/cooldownManager');
 const { PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
@@ -92,6 +93,9 @@ module.exports = {
                 await originalMessage.edit({ embeds: [approvedEmbed], components: [] });
 
             } else if (action === 'reject') {
+                // 将用户加入拉黑列表
+                await addToBlacklist(userId, '管理员预审拒绝');
+
                 updateActiveApply(guildId, userId, categoryId, {
                     status: 'rejected',
                     reviewerId: reviewer.id

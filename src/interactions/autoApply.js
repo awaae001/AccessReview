@@ -1,52 +1,10 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const fs = require('fs').promises;
 const { EmbedBuilder } = require('discord.js');
 const roleConfig = require('../../data/role_config.json');
 const voteManager = require('../utils/voteManager');
+const { getAutoApplyCooldowns, setAutoApplyCooldown, getTimeRemaining } = require('../utils/cooldownManager');
 
-const cooldownsFilePath = path.join(__dirname, '..', '..', 'data', 'cooldowns.json');
-
-// 确保冷却文件存在
-async function ensureCooldownsFile() {
-  try {
-    await fs.access(cooldownsFilePath);
-  } catch (error) {
-    await fs.writeFile(cooldownsFilePath, JSON.stringify({}));
-  }
-}
-
-// 读取并清理过期的冷却数据
-async function getCooldowns() {
-  await ensureCooldownsFile();
-  const data = await fs.readFile(cooldownsFilePath, 'utf8');
-  const cooldowns = JSON.parse(data);
-  const now = Date.now();
-  const cooldownAmount = 24 * 60 * 60 * 1000; // 24 小时
-  let needsUpdate = false;
-
-  for (const userId in cooldowns) {
-    const expirationTime = cooldowns[userId] + cooldownAmount;
-    if (now >= expirationTime) {
-      delete cooldowns[userId];
-      needsUpdate = true;
-    }
-  }
-
-  if (needsUpdate) {
-    await fs.writeFile(cooldownsFilePath, JSON.stringify(cooldowns, null, 2));
-  }
-
-  return cooldowns;
-}
-
-// 写入冷却数据
-async function setCooldown(userId) {
-  const cooldowns = await getCooldowns();
-  const now = Date.now();
-  cooldowns[userId] = now;
-  await fs.writeFile(cooldownsFilePath, JSON.stringify(cooldowns, null, 2));
-}
 
 
 async function handleAutoApply(interaction) {
@@ -63,25 +21,20 @@ async function handleAutoApply(interaction) {
   }
 
   // 速率限制检查
-  const cooldowns = await getCooldowns();
-  const now = Date.now();
-  const cooldownAmount = 24 * 60 * 60 * 1000; // 24 小时
+  const cooldowns = await getAutoApplyCooldowns();
 
   if (cooldowns[userId]) {
-    const expirationTime = cooldowns[userId] + cooldownAmount;
-    if (now < expirationTime) {
-      const timeLeft = (expirationTime - now) / 1000;
-      const hoursLeft = Math.floor(timeLeft / 3600);
-      const minutesLeft = Math.floor((timeLeft % 3600) / 60);
+    const timeRemaining = getTimeRemaining(cooldowns[userId], 24);
+    if (timeRemaining) {
       return interaction.reply({
-        content: `您今天已经申请过了，请在 ${hoursLeft} 小时 ${minutesLeft} 分钟后重试 `,
+        content: `您今天已经申请过了，请在 ${timeRemaining.hoursLeft} 小时 ${timeRemaining.minutesLeft} 分钟后重试 `,
         ephemeral: true,
       });
     }
   }
 
   // 无论成功与否，先设置冷却
-  await setCooldown(userId);
+  await setAutoApplyCooldown(userId);
 
   // Find the config entry for the target role and get the threshold
   const configKey = Object.keys(roleConfig).find(key => roleConfig[key].data.role_id === targetRoleId);

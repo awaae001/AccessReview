@@ -19,7 +19,7 @@ async function registerSlashCommands() {
             const serverIds = process.env.SERVER_IDS ? process.env.SERVER_IDS.split(',').map(id => id.trim()) : [];
 
             if (serverIds.length > 0) {
-                console.log(`准备为 ${serverIds.length} 个服务器注册命令...`);
+                console.log(`[Main_setup]准备为 ${serverIds.length} 个服务器注册命令...`);
 
                 for (const serverId of serverIds) {
                     let retries = 3;
@@ -27,21 +27,21 @@ async function registerSlashCommands() {
 
                     while (retries > 0 && !success) {
                         try {
-                            console.log(`正在删除服务器 ${serverId} 的所有命令... (剩余重试: ${retries})`);
+                            console.log(`[Main_setup]正在删除服务器 ${serverId} 的所有命令... (剩余重试: ${retries})`);
                             await rest.put(
                                 Routes.applicationGuildCommands(CLIENT_ID, serverId),
                                 { body: [] }
                             );
-                            console.log(`服务器 ${serverId} 的命令已清空`);
+                            console.log(`[Main_setup]服务器 ${serverId} 的命令已清空`);
 
                             await new Promise(resolve => setTimeout(resolve, 1000));
 
-                            console.log(`正在为服务器 ${serverId} 注册命令...`);
+                            console.log(`[Main_setup]正在为服务器 ${serverId} 注册命令...`);
                             await rest.put(
                                 Routes.applicationGuildCommands(CLIENT_ID, serverId),
                                 { body: commands }
                             );
-                            console.log(`服务器 ${serverId} 的命令注册成功！`);
+                            console.log(`[Main_setup]服务器 ${serverId} 的命令注册成功！`);
 
                             await sendLog({
                                 module: 'Main',
@@ -51,13 +51,13 @@ async function registerSlashCommands() {
                             success = true;
                         } catch (guildErr) {
                             retries--;
-                            console.error(`服务器 ${serverId} 命令注册失败 (剩余重试: ${retries}):`, guildErr.message);
+                            console.error(`[Main_setup]服务器 ${serverId} 命令注册失败 (剩余重试: ${retries}):`, guildErr.message);
 
                             if (retries === 0) {
                                 await sendLog({
                                     module: 'Main',
                                     action: 'Command Registration Error',
-                                    error: `服务器 ${serverId} 命令注册失败: ${guildErr.message}`
+                                    error: `[Main_setup]服务器 ${serverId} 命令注册失败: ${guildErr.message}`
                                 });
                             } else {
                                 await new Promise(resolve => setTimeout(resolve, 3000));
@@ -65,15 +65,15 @@ async function registerSlashCommands() {
                         }
                     }
                 }
-                console.log('所有服务器命令注册完成！');
+                console.log('[Main_setup]所有服务器命令注册完成！');
             } else {
-                console.log('未在 SERVER_IDS 中配置服务器，跳过命令注册 ');
+                console.log('[Main_setup]未在 SERVER_IDS 中配置服务器，跳过命令注册 ');
             }
         } else {
-            console.log('未设置 CLIENT_ID，跳过命令注册 ');
+            console.log('[Main_setup]未设置 CLIENT_ID，跳过命令注册 ');
         }
     } catch (err) {
-        console.error('命令注册失败:', err);
+        console.error('[Main_setup]命令注册失败:', err);
         await sendLog({
             module: 'Main',
             action: 'Command Registration Error',

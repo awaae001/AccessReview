@@ -69,11 +69,11 @@ async function writeDataFile(filePath, data) {
  * 执行扫描任务
  */
 async function runScan() {
-    console.log('开始执行新成员每日扫描...');
+    console.log('[NewMembers]开始执行新成员每日扫描...');
     await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: '开始执行每日扫描' });
 
     if (!global.client || !global.client.isReady()) {
-        console.error('客户端未准备就绪，无法执行扫描 ');
+        console.error('[NewMembers]客户端未准备就绪，无法执行扫描 ');
         await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: '客户端未准备就绪，扫描中止' }, 'error');
         return;
     }
@@ -90,7 +90,7 @@ async function runScan() {
             await guild.members.fetch(); // 获取所有成员
             const role = await guild.roles.fetch(task.role_id);
             if (!role) {
-                console.warn(`在服务器 ${guild.name} 中找不到角色: ${task.role_id}，跳过此任务 `);
+                console.warn(`[NewMembers]在服务器 ${guild.name} 中找不到角色: ${task.role_id}，跳过此任务 `);
                 continue;
             }
 
@@ -99,7 +99,7 @@ async function runScan() {
 
             const data = await readDataFile(task.filepath);
             if (data === null) {
-                console.error(`读取数据文件 ${task.filepath} 失败，跳过此任务 `);
+                console.error(`[NewMembers]读取数据文件 ${task.filepath} 失败，跳过此任务 `);
                 continue;
             }
             
@@ -109,11 +109,11 @@ async function runScan() {
             data[today].count = memberCount;
 
             await writeDataFile(task.filepath, data);
-            console.log(`服务器 ${guild.name} 的成员数快照已保存: ${memberCount}`);
+            console.log(`[NewMembers]服务器 ${guild.name} 的成员数快照已保存: ${memberCount}`);
             await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: `服务器 ${guild.name} (${guildId}) 的快照已保存，当前人数: ${memberCount}` });
 
         } catch (error) {
-            console.error(`处理服务器 ${guildId} 的扫描任务时出错:`, error);
+            console.error(`[NewMembers]处理服务器 ${guildId} 的扫描任务时出错:`, error);
             await sendLog({ module: 'NewMemberScanner', action: 'Run Scan', info: `处理服务器 ${guildId} 时出错: ${error.message}` }, 'error');
         }
     }
@@ -144,9 +144,9 @@ async function handleGuildMemberAdd(member) {
         data[today].join = (data[today].join || 0) + 1;
 
         await writeDataFile(task.filepath, data);
-        console.log(`服务器 ${member.guild.name} 有新成员加入，已更新统计 `);
+        console.log(`[NewMembers]服务器 ${member.guild.name} 有新成员加入，已更新统计 `);
     } catch (error) {
-        console.error(`处理成员加入事件时出错:`, error);
+        console.error(`[NewMembers]处理成员加入事件时出错:`, error);
     }
 }
 
@@ -175,9 +175,9 @@ async function handleGuildMemberRemove(member) {
         data[today].leave = (data[today].leave || 0) + 1;
 
         await writeDataFile(task.filepath, data);
-        console.log(`服务器 ${member.guild.name} 有成员离开，已更新统计 `);
+        console.log(`[NewMembers]服务器 ${member.guild.name} 有成员离开，已更新统计 `);
     } catch (error) {
-        console.error(`处理成员离开事件时出错:`, error);
+        console.error(`[NewMembers]处理成员离开事件时出错:`, error);
     }
 }
 
@@ -212,10 +212,10 @@ async function handleGuildMemberUpdate(oldMember, newMember) {
 
         if (newHasRole) { // 获得角色
             data[today].role_join = (data[today].role_join || 0) + 1;
-            console.log(`服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 获得角色，已更新统计 `);
+            console.log(`[NewMembers]服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 获得角色，已更新统计 `);
         } else { // 失去角色
             data[today].role_leave = (data[today].role_leave || 0) + 1;
-             console.log(`服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 失去角色，已更新统计 `);
+             console.log(`[NewMembers]服务器 ${newMember.guild.name} 有成员  ${newMember.user.tag} 失去角色，已更新统计 `);
         }
 
         await writeDataFile(task.filepath, data);
@@ -229,23 +229,23 @@ async function handleGuildMemberUpdate(oldMember, newMember) {
  * 初始化扫描器，设置定时任务和事件监听器
  */
 async function initialize() {
-    console.log('初始化新成员扫描器...');
+    console.log('[NewMembers]初始化新成员扫描器...');
     
     // 1. 加载配置
     await loadConfig();
 
     // 2. 设置每日定时扫描任务 (例如每天的 23:59)
     cron.schedule('59 23 * * *', runScan);
-    console.log('每日新成员扫描定时任务已设置 ');
+    console.log('[NewMembers]每日新成员扫描定时任务已设置 ');
 
     // 3. 注册事件监听器
     if (global.client) {
         global.client.on(Events.GuildMemberAdd, handleGuildMemberAdd);
         global.client.on(Events.GuildMemberRemove, handleGuildMemberRemove);
         global.client.on(Events.GuildMemberUpdate, handleGuildMemberUpdate);
-        console.log('新成员加入/离开/角色更新事件监听器已注册 ');
+        console.log('[NewMembers]新成员加入/离开/角色更新事件监听器已注册 ');
     } else {
-        console.error('无法注册事件监听器：全局客户端实例未找到 ');
+        console.error('[NewMembers]无法注册事件监听器：全局客户端实例未找到 ');
     }
 }
 

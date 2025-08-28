@@ -5,6 +5,7 @@ const {
     removeActiveApply,
     addApplyToHistory
 } = require('../../utils/persistence');
+const { addToBlacklist } = require('../../utils/cooldownManager');
 const { EmbedBuilder } = require('discord.js');
 const { hasPermission } = require('../../utils/permissionChecker');
 
@@ -33,6 +34,9 @@ module.exports = {
 
             const applicant = await guild.members.fetch(userId);
             const channel = interaction.channel;
+
+            // 将用户加入拉黑列表
+            await addToBlacklist(userId, '用户主动退出');
 
             // 更新申请状态为rejected（防止重新申请）
             updateActiveApply(guildId, userId, categoryId, {

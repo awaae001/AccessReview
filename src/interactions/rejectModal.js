@@ -1,5 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
+const { addToBlacklist } = require('../utils/cooldownManager');
 
 module.exports = async (interaction, client) => {
   try {
@@ -34,6 +35,9 @@ module.exports = async (interaction, client) => {
       await interaction.reply({ content: '用户已不在服务器 ', flags: 64 });
       return;
     }
+
+    // 将用户加入拉黑列表
+    await addToBlacklist(userId, '管理员拒绝（旧系统）');
 
     // 如果填写了拒绝理由，私信给用户
     if (reason) {

@@ -14,7 +14,7 @@ const { handleQueryNewMembers } = require('../src/interactions/queryNewMembersHa
 
 function registerEventListeners(client) {
   client.once(Events.ClientReady, async () => {
-    console.log(`Bot 已上线: ${client.user.tag}`);
+    console.log(`[Main_setup]Bot 已上线: ${client.user.tag}`);
     await sendLog({
       module: 'Main',
       action: 'Bot Startup',

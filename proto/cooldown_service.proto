@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package cooldown;
+
+// 冷却服务定义
+service CooldownService {
+  // 获取用户自动申请冷却状态
+  rpc GetAutoApplyCooldown(GetCooldownRequest) returns (CooldownResponse);
+  
+  // 获取用户拉黑状态
+  rpc GetBlacklistStatus(GetBlacklistRequest) returns (BlacklistResponse);
+  
+  // 添加用户到拉黑列表
+  rpc AddToBlacklist(AddBlacklistRequest) returns (AddBlacklistResponse);
+  
+  // 获取所有拉黑用户
+  rpc GetAllBlacklistedUsers(GetAllBlacklistRequest) returns (GetAllBlacklistResponse);
+  
+  // 批量查询多个用户的冷却状态
+  rpc BatchGetCooldownStatus(BatchGetCooldownRequest) returns (BatchGetCooldownResponse);
+}
+
+// 请求消息
+message GetCooldownRequest {
+  string user_id = 1;
+}
+
+message GetBlacklistRequest {
+  string user_id = 1;
+}
+
+message AddBlacklistRequest {
+  string user_id = 1;
+  string reason = 2;
+  int64 timestamp = 3; // 可选，默认为当前时间
+}
+
+message GetAllBlacklistRequest {
+  // 空请求，获取所有拉黑用户
+}
+
+message BatchGetCooldownRequest {
+  repeated string user_ids = 1;
+}
+
+// 响应消息
+message CooldownResponse {
+  bool is_on_cooldown = 1;
+  int64 cooldown_start_time = 2; // 冷却开始时间戳
+  int64 cooldown_end_time = 3;   // 冷却结束时间戳
+  TimeRemaining time_remaining = 4;
+}
+
+message BlacklistResponse {
+  bool is_blacklisted = 1;
+  string reason = 2;
+  int64 blacklist_start_time = 3; // 拉黑开始时间戳
+  int64 blacklist_end_time = 4;   // 拉黑结束时间戳 (48小时后)
+  TimeRemaining time_remaining = 5;
+}
+
+message AddBlacklistResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetAllBlacklistResponse {
+  repeated BlacklistedUser blacklisted_users = 1;
+  int32 total_count = 2;
+}
+
+message BatchGetCooldownResponse {
+  repeated UserCooldownStatus user_statuses = 1;
+}
+
+// 嵌套消息类型
+message TimeRemaining {
+  int32 hours_left = 1;
+  int32 minutes_left = 2;
+  int64 total_seconds_left = 3;
+}
+
+message BlacklistedUser {
+  string user_id = 1;
+  string reason = 2;
+  int64 blacklist_start_time = 3;
+  int64 blacklist_end_time = 4;
+  TimeRemaining time_remaining = 5;
+}
+
+message UserCooldownStatus {
+  string user_id = 1;
+  CooldownInfo auto_apply_cooldown = 2;
+  BlacklistInfo blacklist_info = 3;
+}
+
+message CooldownInfo {
+  bool is_active = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+  TimeRemaining time_remaining = 4;
+}
+
+message BlacklistInfo {
+  bool is_active = 1;
+  string reason = 2;
+  int64 start_time = 3;
+  int64 end_time = 4;
+  TimeRemaining time_remaining = 5;
+}
+
+// 枚举类型
+enum CooldownType {
+  AUTO_APPLY = 0;
+  BLACKLIST = 1;
+}
+
+enum CooldownStatus {
+  ACTIVE = 0;
+  EXPIRED = 1;
+  NOT_SET = 2;
+}
