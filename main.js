@@ -40,8 +40,7 @@ async function startApp() {
     await bot.start();
     console.log('[Main] 应用启动完成');
   } catch (error) {
-    console.error('[Main] 应用启动失败:', error);
-    process.exit(1);
+    console.error('[Main] 应用启动失败:', error.message);
   }
 }
 

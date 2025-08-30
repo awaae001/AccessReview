@@ -32,9 +32,13 @@ class Bot {
       console.log('[Bot] Discord bot 启动成功');
 
       // 启动 gRPC 客户端
-      console.log('[Bot] 正在启动 gRPC 客户端...');
-      await this.initializeGrpc();
-      console.log('[Bot] gRPC 客户端启动成功');
+      // 检查环境变量以决定是否启动 gRPC
+      if (process.env.GRPC_ENABLED === 'true') {
+        console.log('[Bot] 正在启动 gRPC 客户端...');
+        await this.initializeGrpc();
+      } else {
+        console.log('[Bot] gRPC 服务已禁用 (GRPC_ENABLED is not \'true\')');
+      }
 
     } catch (error) {
       console.error('[Bot] 启动失败:', error);
@@ -54,8 +58,7 @@ class Bot {
       
       console.log('[Bot] gRPC 服务已启动并连接到:', process.env.GRPC_SERVER_ADDRESS);
     } catch (error) {
-      console.error('[Bot] gRPC 初始化失败:', error);
-      throw error;
+      console.error('[Bot] gRPC 初始化失败: Bot将继续运行，但gRPC相关功能将不可用。', error.message);
     }
   }
 
